@@ -94,14 +94,22 @@ classroom prototype. It is not a substitute for partner or instructor approval.
 ## D-009: Present Premium as an informational value-proposition concept
 
 - **Status:** Implemented as a public information page only
-- **Approval:** Both partners approved this limited page concept on 2026-11-17.
-- **Decision:** Present a proposed MXN 129/month educational plan concept describing
-  possible goal/budget-based analysis and a potential advisor component.
-- **Limitations:** VALORA does not currently offer Premium, provide an advisor or
-  personalized financial advice, accept payments, or enroll subscribers. The page
-  collects no payment or sensitive personal information.
-- **Future changes:** Actual advisor services, recommendations, or billing require
-  separate scope approval and review.
+- **Approval:** Both partners approved the informational Premium page concept on
+  2026-11-17. The project owner subsequently selected the combined MXN 129/month
+  plus 0.75% annual AUM pricing scenario for the pitch; validate this assumption
+  with both partners before treating it as a final business-model decision.
+- **Decision:** Position VALORA as a financial-education freemium brand. The proposed
+  free tier includes education, a basic health assessment, an investment calculator,
+  goal-setting, and basic portfolio simulation. The paid conversion is a future
+  investment-management service proposal.
+- **Illustrative pricing:** MXN 129/month plus 0.75% annual AUM. At hypothetical
+  MXN 50,000 AUM, the AUM fee is MXN 375/year (about MXN 31.25/month), in addition
+  to the proposed subscription. This is illustrative arithmetic, not an active fee.
+- **Limitations:** The current prototype does not provide the proposed complete free
+  service suite, manage assets, give personalized advice, employ/provide an advisor,
+  connect to a bank or brokerage, accept payments, or enroll subscribers.
+- **Future changes:** Actual asset management, advice, integrations, or billing
+  require separate operational, legal, regulatory, and partner review.
 
 ## Open item: Public repository database file
 

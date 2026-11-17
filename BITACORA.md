@@ -79,13 +79,16 @@ information out of this file.
 
 ## 2026-11-17 - Premium value-proposition page
 
-- **Goal:** Present the proposed MXN 129/month Premium value proposition without
-  changing VALORA into a live advisory or payment service.
-- **AI did:** Added a public Premium concept page describing possible educational
-  analysis and a future advisor component, with clear notices that no subscription,
-  advisor, personalized advice, or payment is currently available.
-- **We decided:** Both partners approved only this informational page. No payment
-  data or additional sensitive personal information is collected.
-- **Reviewer flags:** A test verifies public access, the proposed price, and the
-  no-advice/no-payment disclosures. Final test results are recorded after running
-  the suite.
+- **Goal:** Present VALORA as a trustworthy financial-education brand with a
+  freemium path to a future investment-management service.
+- **AI did:** Updated the Premium proposal page to describe the proposed free tier
+  (education, basic health assessment, calculator, goal setting, and portfolio
+  simulation) and future paid service. Added proposed pricing of MXN 129/month plus
+  0.75% annual AUM, with the MXN 50,000 AUM example clearly labeled illustrative.
+- **We decided:** The informational page is not an active service. The current app
+  does not manage assets, provide an advisor, connect to a bank, or accept payments.
+- **Reviewer flags:** Automated test checks the freemium benefits, pricing math, and
+  disclosures. The public deployment returned 404 for `/premium` before these local
+  changes; push the updated files and wait for Render before claiming the public
+  page is available. The final pricing assumption should be confirmed by both
+  partners before use as a final forecast.

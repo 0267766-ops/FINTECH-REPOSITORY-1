@@ -31,13 +31,20 @@ class ValoraAppTests(unittest.TestCase):
         self.assertIn(b"--forest: #173b32", response.data)
         self.assertIn(b"background: var(--ivory); color: var(--charcoal)", response.data)
 
-    def test_premium_proposal_is_public_and_does_not_offer_advice_or_payment(self):
+    def test_premium_freemium_and_future_aum_proposal_is_transparent(self):
         response = self.client.get("/premium")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Premium | proposed subscription", response.data)
+        self.assertIn(b"financial education", response.data.lower())
+        self.assertIn(b"Basic financial-health assessment", response.data)
+        self.assertIn(b"Investment calculator", response.data)
+        self.assertIn(b"Goal-setting tools", response.data)
+        self.assertIn(b"Basic portfolio simulation", response.data)
         self.assertIn(b"$129 MXN per month", response.data)
-        self.assertIn(b"No advisor is currently provided by VALORA", response.data)
-        self.assertIn(b"not a charge or an active offer", response.data)
+        self.assertIn(b"0.75% annual fee on assets under management (AUM)", response.data)
+        self.assertIn(b"about MXN 31.25 per month", response.data)
+        self.assertIn(b"in addition to the proposed MXN 129 monthly fee", response.data)
+        self.assertIn(b"Not currently available", response.data)
+        self.assertIn(b"does not currently manage assets", response.data)
         self.assertNotIn(b"name=\"card_number\"", response.data)
 
     @staticmethod

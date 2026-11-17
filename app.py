@@ -418,48 +418,74 @@ HOME_TEMPLATE = """
 PREMIUM_TEMPLATE = """
 <section class="hero">
   <div>
-    <div class="eyebrow">Premium | proposed subscription</div>
-    <h1>Your goals.<br>A clearer plan.</h1>
-    <p class="lead">A proposed next step for people who want to understand how their goals, time horizon, and stated budget could shape a more personal financial plan.</p>
-    <p class="small">Proposed price: <strong>$129 MXN per month</strong>. This is a classroom pitch concept, not an available subscription.</p>
+    <div class="eyebrow">VALORA | financial education first</div>
+    <h1>Build confidence before you invest.</h1>
+    <p class="lead">VALORA's proposed freemium model starts with accessible financial education and practical planning tools, then offers an optional future investment-management service for customers who need more support.</p>
     <div class="button-row">
-      <a class="button" href="{{ url_for('signup') }}">Explore the free prototype</a>
-      <a class="button secondary" href="{{ url_for('home') }}">Back to VALORA</a>
+      <a class="button" href="#free-plan">Explore the free plan</a>
+      <a class="button secondary" href="#premium-plan">See the Premium proposal</a>
     </div>
   </div>
   <aside class="hero-panel">
-    <div class="eyebrow">The proposed value</div>
-    <blockquote>More context for your next decision.</blockquote>
-    <p class="small">A proposed analysis could organize a person's stated goals, time horizon, and self-reported budget into an understandable educational plan.</p>
+    <div class="eyebrow">The company promise</div>
+    <blockquote>Clarity that compounds.</blockquote>
+    <p class="small">The objective is to earn trust through understandable education and transparent assumptions - not simply to advertise an app or promise investment results.</p>
   </aside>
 </section>
-<section class="section">
-  <div class="eyebrow">A concept for guided learning</div>
-  <h2>What a future Premium plan could include</h2>
+<section id="free-plan" class="section">
+  <div class="eyebrow">Freemium | start with financial confidence</div>
+  <h2>Useful tools to explore at no cost</h2>
   <div class="three-grid">
     <article class="card">
-      <span class="step-number">01 | YOUR SITUATION</span>
-      <h3>A plan around your possibilities</h3>
-      <p class="small">Organize goals and a self-reported budget into educational scenarios, without connecting a bank account or moving money.</p>
+      <span class="step-number">01 | LEARN</span>
+      <h3>Financial education</h3>
+      <p class="small">Beginner-friendly explanations of core money and investing concepts, risks, and common trade-offs.</p>
     </article>
     <article class="card">
-      <span class="step-number">02 | CLEAR EXPLANATIONS</span>
-      <h3>Understand the trade-offs</h3>
-      <p class="small">Compare time horizons, risk concepts, and illustrative portfolio categories in beginner-friendly language.</p>
+      <span class="step-number">02 | CHECK IN</span>
+      <h3>Basic financial-health assessment</h3>
+      <p class="small">A simple educational check-in based on information a person chooses to enter, with clear limitations and no bank connection.</p>
     </article>
     <article class="card">
-      <span class="step-number">03 | PROPOSED HUMAN GUIDANCE</span>
-      <h3>Consider questions with an advisor</h3>
-      <p class="small">The business concept could include access to a qualified human advisor, subject to future validation, approvals, and applicable requirements. No advisor is currently provided by VALORA.</p>
+      <span class="step-number">03 | PLAN</span>
+      <h3>Investment calculator</h3>
+      <p class="small">Explore hypothetical scenarios using user-selected assumptions. Outputs are illustrations, not forecasts or promised returns.</p>
+    </article>
+    <article class="card">
+      <span class="step-number">04 | SET GOALS</span>
+      <h3>Goal-setting tools</h3>
+      <p class="small">Organize a financial goal, a target date, and a self-reported amount to explore a possible plan.</p>
+    </article>
+    <article class="card">
+      <span class="step-number">05 | EXPLORE</span>
+      <h3>Basic portfolio simulation</h3>
+      <p class="small">Review broad illustrative categories and clearly labeled fictional performance examples, with no trades or real balances.</p>
+    </article>
+    <article class="card">
+      <span class="step-number">06 | TRUST</span>
+      <h3>Transparent assumptions</h3>
+      <p class="small">Understand which information and assumptions shape an educational result and what the tool cannot tell you.</p>
     </article>
   </div>
 </section>
-<section class="section">
+<section id="premium-plan" class="section">
+  <div class="eyebrow">Optional next step | future service proposal</div>
+  <h2>Premium investment management</h2>
   <article class="card">
-    <div class="eyebrow">Proposed price</div>
-    <h2>$129 MXN / month</h2>
-    <p>This price is a proposal for a future subscription, not a charge or an active offer.</p>
-    <div class="notice small">Premium is not currently available. This page does not provide personalized financial advice, access to a human advisor, account opening, a payment method, or subscription enrollment. Do not enter payment or sensitive personal information.</div>
+    <p class="lead" style="color:var(--charcoal)">For customers seeking more support, VALORA proposes a future investment-management service designed around their goals and possibilities, with clear explanations and efficient progress reviews.</p>
+    <h3>Proposed pricing</h3>
+    <p><strong>$129 MXN per month</strong> plus a proposed <strong>0.75% annual fee on assets under management (AUM)</strong>.</p>
+    <ul>
+      <li>A more detailed planning experience based on stated goals, time horizon, and budget.</li>
+      <li>Transparent explanations of portfolio categories, risk concepts, and assumptions.</li>
+      <li>Proposed periodic progress reviews to help customers stay organized.</li>
+      <li>Potential access to qualified human support, subject to future validation and applicable approvals.</li>
+    </ul>
+    <div class="card" style="margin:18px 0">
+      <strong>Illustrative fee example - not a quote</strong>
+      <p class="small">At MXN 50,000 in hypothetical AUM, a 0.75% annual AUM fee equals MXN 375 per year (about MXN 31.25 per month), in addition to the proposed MXN 129 monthly fee. This is only arithmetic to explain the proposal; actual fees, eligibility, and service terms are not established.</p>
+    </div>
+    <div class="notice small"><strong>Not currently available:</strong> This is a business-model proposal, not an active investment-management service or offer. VALORA does not currently manage assets, provide personalized investment advice or an advisor, connect to a bank or brokerage, accept subscription payments, or enroll customers. Any future launch would require separate operational, legal, regulatory, and partner approval. Do not enter payment or sensitive personal information.</div>
   </article>
 </section>
 """
