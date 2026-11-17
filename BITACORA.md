@@ -92,3 +92,17 @@ information out of this file.
   changes; push the updated files and wait for Render before claiming the public
   page is available. The final pricing assumption should be confirmed by both
   partners before use as a final forecast.
+
+## 2026-11-17 - Premium pricing and alliance update
+
+- **Goal:** Update the Premium proposal after the project changed its pricing model.
+- **AI did:** Removed the proposed 0.75% AUM fee and its example from the page,
+  tests, and project documents. Kept the proposed MXN 129/month subscription and
+  disclosed the Visa and Mastercard alliances.
+- **We decided:** The project owner confirmed the alliances are formal and
+  authorized to announce. The business model assigns transaction processing to
+  the partners and personalized investment guidance to VALORA for MXN 129/month;
+  VALORA does not receive or custody funds. These services are not active in the
+  classroom prototype.
+- **Reviewer flags:** Run the automated suite and deploy the updated files before
+  claiming the public page reflects this change.

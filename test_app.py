@@ -31,7 +31,7 @@ class ValoraAppTests(unittest.TestCase):
         self.assertIn(b"--forest: #173b32", response.data)
         self.assertIn(b"background: var(--ivory); color: var(--charcoal)", response.data)
 
-    def test_premium_freemium_and_future_aum_proposal_is_transparent(self):
+    def test_premium_freemium_and_partnership_disclosures_are_transparent(self):
         response = self.client.get("/premium")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"financial education", response.data.lower())
@@ -40,11 +40,14 @@ class ValoraAppTests(unittest.TestCase):
         self.assertIn(b"Goal-setting tools", response.data)
         self.assertIn(b"Basic portfolio simulation", response.data)
         self.assertIn(b"$129 MXN per month", response.data)
-        self.assertIn(b"0.75% annual fee on assets under management (AUM)", response.data)
-        self.assertIn(b"about MXN 31.25 per month", response.data)
-        self.assertIn(b"in addition to the proposed MXN 129 monthly fee", response.data)
-        self.assertIn(b"Not currently available", response.data)
-        self.assertIn(b"does not currently manage assets", response.data)
+        self.assertIn(b"No AUM fee.", response.data)
+        self.assertNotIn(b"0.75%", response.data)
+        self.assertIn(b"alliances with Visa and Mastercard", response.data)
+        self.assertIn(b"personalized guidance to help them understand where they could invest", response.data)
+        self.assertIn(b"those partners process the financial operations while VALORA provides investment guidance", response.data)
+        self.assertIn(b"does not receive or custody customer funds", response.data)
+        self.assertIn(b"does not provide personalized investment advice", response.data)
+        self.assertIn(b"connect to Visa or Mastercard", response.data)
         self.assertNotIn(b"name=\"card_number\"", response.data)
 
     @staticmethod

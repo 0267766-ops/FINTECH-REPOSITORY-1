@@ -420,7 +420,7 @@ PREMIUM_TEMPLATE = """
   <div>
     <div class="eyebrow">VALORA | financial education first</div>
     <h1>Build confidence before you invest.</h1>
-    <p class="lead">VALORA's proposed freemium model starts with accessible financial education and practical planning tools, then offers an optional future investment-management service for customers who need more support.</p>
+    <p class="lead">VALORA's proposed freemium model starts with accessible financial education and practical planning tools, then offers optional future investment guidance for customers who need more support.</p>
     <div class="button-row">
       <a class="button" href="#free-plan">Explore the free plan</a>
       <a class="button secondary" href="#premium-plan">See the Premium proposal</a>
@@ -470,22 +470,18 @@ PREMIUM_TEMPLATE = """
 </section>
 <section id="premium-plan" class="section">
   <div class="eyebrow">Optional next step | future service proposal</div>
-  <h2>Premium investment management</h2>
+  <h2>Premium investment guidance</h2>
   <article class="card">
-    <p class="lead" style="color:var(--charcoal)">For customers seeking more support, VALORA proposes a future investment-management service designed around their goals and possibilities, with clear explanations and efficient progress reviews.</p>
+    <p class="lead" style="color:var(--charcoal)">For customers seeking more support, VALORA proposes personalized guidance to help them understand where they could invest based on their goals, time horizon, and possibilities.</p>
     <h3>Proposed pricing</h3>
-    <p><strong>$129 MXN per month</strong> plus a proposed <strong>0.75% annual fee on assets under management (AUM)</strong>.</p>
+    <p><strong>$129 MXN per month</strong> for the proposed Premium guidance service. No AUM fee.</p>
     <ul>
-      <li>A more detailed planning experience based on stated goals, time horizon, and budget.</li>
-      <li>Transparent explanations of portfolio categories, risk concepts, and assumptions.</li>
-      <li>Proposed periodic progress reviews to help customers stay organized.</li>
-      <li>Potential access to qualified human support, subject to future validation and applicable approvals.</li>
+      <li>Personalized guidance on investment options based on stated goals, time horizon, and budget.</li>
+      <li>Clear explanations of portfolio categories, risks, and assumptions.</li>
+      <li>Periodic progress reviews to help customers stay on track.</li>
     </ul>
-    <div class="card" style="margin:18px 0">
-      <strong>Illustrative fee example - not a quote</strong>
-      <p class="small">At MXN 50,000 in hypothetical AUM, a 0.75% annual AUM fee equals MXN 375 per year (about MXN 31.25 per month), in addition to the proposed MXN 129 monthly fee. This is only arithmetic to explain the proposal; actual fees, eligibility, and service terms are not established.</p>
-    </div>
-    <div class="notice small"><strong>Not currently available:</strong> This is a business-model proposal, not an active investment-management service or offer. VALORA does not currently manage assets, provide personalized investment advice or an advisor, connect to a bank or brokerage, accept subscription payments, or enroll customers. Any future launch would require separate operational, legal, regulatory, and partner approval. Do not enter payment or sensitive personal information.</div>
+    <p class="small">VALORA has alliances with Visa and Mastercard for financial operations. Under the proposed model, those partners process the financial operations while VALORA provides investment guidance; VALORA does not receive or custody customer funds.</p>
+    <div class="notice small"><strong>Not currently available in this demo:</strong> The Premium guidance service and payment operations are a business-model proposal, not active features. The prototype does not provide personalized investment advice, process transactions, connect to Visa or Mastercard, receive or custody funds, connect to a bank or brokerage, accept subscription payments, or enroll customers. Any future launch would require separate operational, legal, regulatory, and partner approval. Do not enter payment or sensitive personal information.</div>
   </article>
 </section>
 """

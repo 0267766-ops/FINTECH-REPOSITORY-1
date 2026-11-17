@@ -95,20 +95,23 @@ classroom prototype. It is not a substitute for partner or instructor approval.
 
 - **Status:** Implemented as a public information page only
 - **Approval:** Both partners approved the informational Premium page concept on
-  2026-11-17. The project owner subsequently selected the combined MXN 129/month
-  plus 0.75% annual AUM pricing scenario for the pitch; validate this assumption
-  with both partners before treating it as a final business-model decision.
+  2026-11-17. On 2026-11-17, the project owner changed the pricing proposal to
+  MXN 129/month with no AUM fee, and confirmed the Visa and Mastercard alliances
+  are formal and authorized to announce.
 - **Decision:** Position VALORA as a financial-education freemium brand. The proposed
   free tier includes education, a basic health assessment, an investment calculator,
-  goal-setting, and basic portfolio simulation. The paid conversion is a future
-  investment-management service proposal.
-- **Illustrative pricing:** MXN 129/month plus 0.75% annual AUM. At hypothetical
-  MXN 50,000 AUM, the AUM fee is MXN 375/year (about MXN 31.25/month), in addition
-  to the proposed subscription. This is illustrative arithmetic, not an active fee.
+  goal-setting, and basic portfolio simulation. The paid conversion is future
+  personalized investment guidance at MXN 129/month, with no AUM fee.
+- **Alliance disclosure:** VALORA has alliances with Visa and Mastercard for
+  financial operations. In the proposed model, the partners process financial
+  operations while VALORA provides investment guidance and does not receive or
+  custody funds. Neither partner is integrated into the classroom prototype, which
+  does not process transactions or provide personalized investment advice.
 - **Limitations:** The current prototype does not provide the proposed complete free
   service suite, manage assets, give personalized advice, employ/provide an advisor,
-  connect to a bank or brokerage, accept payments, or enroll subscribers.
-- **Future changes:** Actual asset management, advice, integrations, or billing
+  connect to a bank or brokerage, process transactions, accept payments, or enroll
+  subscribers.
+- **Future changes:** Actual advice, integrations, or billing
   require separate operational, legal, regulatory, and partner review.
 
 ## Open item: Public repository database file
