@@ -3,14 +3,15 @@
 This file records the product and implementation decisions for the FIN506
 classroom prototype. It is not a substitute for partner or instructor approval.
 
-## D-001: Keep the MVP within the four-step VALORA flow
+## D-001: Keep the core MVP flow within the agreed VALORA scope
 
 - **Status:** Implemented
-- **Decision:** Focus on account creation, a basic financial profile, an explainable
-  investor profile and category-level portfolio, and a dashboard with simulated
-  performance.
-- **Reason:** This is the agreed working-product scope. New product features are
-  deferred rather than added during deployment or visual cleanup.
+- **Decision:** The required core remains account creation, a basic financial
+  profile, an explainable investor profile and category-level portfolio, and a
+  dashboard with simulated performance. A simulated marketplace has since been
+  approved as an explicit scope addendum in `SPEC.md`.
+- **Reason:** Keep the core user journey intact while documenting any approved
+  companion feature rather than silently expanding the original scope.
 
 ## D-002: Use Flask, server-rendered pages, and SQLite
 
@@ -50,9 +51,11 @@ classroom prototype. It is not a substitute for partner or instructor approval.
 - **Status:** Implemented
 - **Decision:** Require sign-in for profile, portfolio, dashboard, and activity
   pages; hash passwords; use CSRF tokens for forms; and scope portfolio queries to
-  the signed-in user.
+  the signed-in user. Marketplace favorites and simulated activity are also scoped
+  to the signed-in user.
 - **Verification:** Automated tests cover the end-to-end flow, profile-rule
-  boundaries, cross-user portfolio access, login/logout, and CSRF validation.
+  boundaries, cross-user portfolio and favorites isolation, activity history,
+  login/logout, and CSRF validation.
 
 ## D-006: Deploy the prototype on Render as a Python web service
 
@@ -71,6 +74,34 @@ classroom prototype. It is not a substitute for partner or instructor approval.
   text and controls.
 - **Reason:** The change reflects the requested reversed light/dark contrast while
   retaining readable content on cards and forms.
+
+## D-008: Add a simulated investment marketplace
+
+- **Status:** Implemented
+- **Approval:** Both partners approved this simulated-only scope on 2026-11-17.
+  The details and exclusions are recorded in `SPEC.md`.
+- **Decision:** Add four illustrative portfolio categories, a searchable and
+  filterable public-company directory, portfolio and company detail pages, and
+  authenticated per-user favorites. Record account/profile setup and favorite
+  changes in simulated activity.
+- **Data policy:** Portfolio minimums, horizons, and allocations are classroom
+  assumptions. No prices, daily changes, market capitalization, or historical
+  returns are fabricated; those fields are marked unavailable without a verified
+  data provider.
+- **Exclusions:** No external market API, bank, brokerage, real transaction,
+  transfer, custody, or claim that a financial institution administers money.
+
+## D-009: Present Premium as an informational value-proposition concept
+
+- **Status:** Implemented as a public information page only
+- **Approval:** Both partners approved this limited page concept on 2026-11-17.
+- **Decision:** Present a proposed MXN 129/month educational plan concept describing
+  possible goal/budget-based analysis and a potential advisor component.
+- **Limitations:** VALORA does not currently offer Premium, provide an advisor or
+  personalized financial advice, accept payments, or enroll subscribers. The page
+  collects no payment or sensitive personal information.
+- **Future changes:** Actual advisor services, recommendations, or billing require
+  separate scope approval and review.
 
 ## Open item: Public repository database file
 

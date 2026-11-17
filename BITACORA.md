@@ -61,3 +61,31 @@ information out of this file.
 - **Reviewer flags:** The regression test reproduced the missing `format_mxn`
   template variable before the fix. Final test results are recorded after running
   the suite.
+
+## 2026-11-17 - Approved simulated investment marketplace
+
+- **Goal:** Add the requested portfolio catalog and company marketplace while
+  staying within a safe classroom simulation.
+- **AI did:** Added four illustrative portfolio categories, company search and
+  sector filters, detail pages, user-specific favorites, and account/profile/favorite
+  events in each user's simulated activity. Current prices, daily changes, market
+  capitalization, and historical returns are explicitly unavailable; no external
+  market API or financial transaction was added.
+- **We decided:** Both partners approved the simulated-only scope. The exclusions
+  and assumptions are recorded in `SPEC.md`.
+- **Reviewer flags:** Automated coverage added for authentication, filtering,
+  detail pages, favorite privacy, CSRF, and activity history. All 10 automated
+  tests passed, including the existing core-flow and cross-user privacy tests.
+
+## 2026-11-17 - Premium value-proposition page
+
+- **Goal:** Present the proposed MXN 129/month Premium value proposition without
+  changing VALORA into a live advisory or payment service.
+- **AI did:** Added a public Premium concept page describing possible educational
+  analysis and a future advisor component, with clear notices that no subscription,
+  advisor, personalized advice, or payment is currently available.
+- **We decided:** Both partners approved only this informational page. No payment
+  data or additional sensitive personal information is collected.
+- **Reviewer flags:** A test verifies public access, the proposed price, and the
+  no-advice/no-payment disclosures. Final test results are recorded after running
+  the suite.

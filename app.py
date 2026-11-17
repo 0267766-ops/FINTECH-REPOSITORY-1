@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlsplit
 
 from flask import (
     Flask,
@@ -56,6 +57,97 @@ PROFILES = {
         ],
     },
 }
+
+MARKETPLACE_PORTFOLIOS = {
+    "conservative": {
+        "name": "Conservative",
+        "risk": "Lower illustrative risk",
+        "allocation": (
+            ("Fixed-income category", 70),
+            ("Diversified equity category", 20),
+            ("Liquidity category", 10),
+        ),
+        "minimum_cents": 100000,
+        "horizon": "1-3 years (classroom assumption)",
+        "description": "An illustrative mix with a larger fixed-income share.",
+    },
+    "moderate": {
+        "name": "Moderate",
+        "risk": "Moderate illustrative risk",
+        "allocation": (
+            ("Fixed-income category", 50),
+            ("Diversified equity category", 40),
+            ("Liquidity category", 10),
+        ),
+        "minimum_cents": 100000,
+        "horizon": "3-7 years (classroom assumption)",
+        "description": "An illustrative mix balancing fixed-income and equity categories.",
+    },
+    "aggressive": {
+        "name": "Aggressive",
+        "risk": "Higher illustrative risk",
+        "allocation": (
+            ("Fixed-income category", 20),
+            ("Diversified equity category", 70),
+            ("Liquidity category", 10),
+        ),
+        "minimum_cents": 100000,
+        "horizon": "7+ years (classroom assumption)",
+        "description": "An illustrative mix with a larger diversified-equity share.",
+    },
+    "international": {
+        "name": "International",
+        "risk": "Varies by illustrative allocation",
+        "allocation": (
+            ("International equity category", 60),
+            ("International fixed-income category", 30),
+            ("Liquidity category", 10),
+        ),
+        "minimum_cents": 100000,
+        "horizon": "5+ years (classroom assumption)",
+        "description": "An illustrative allocation across broad international categories.",
+    },
+}
+
+SAMPLE_COMPANIES = (
+    {
+        "ticker": "AAPL",
+        "name": "Apple Inc.",
+        "sector": "Information Technology",
+        "description": "A publicly traded technology company listed here for interface demonstration.",
+    },
+    {
+        "ticker": "MSFT",
+        "name": "Microsoft Corporation",
+        "sector": "Information Technology",
+        "description": "A publicly traded software and technology company listed here for interface demonstration.",
+    },
+    {
+        "ticker": "NVDA",
+        "name": "NVIDIA Corporation",
+        "sector": "Semiconductors",
+        "description": "A publicly traded semiconductor company listed here for interface demonstration.",
+    },
+    {
+        "ticker": "KO",
+        "name": "The Coca-Cola Company",
+        "sector": "Consumer Staples",
+        "description": "A publicly traded beverage company listed here for interface demonstration.",
+    },
+    {
+        "ticker": "JPM",
+        "name": "JPMorgan Chase & Co.",
+        "sector": "Financials",
+        "description": "A publicly traded financial-services company listed here for interface demonstration.",
+    },
+    {
+        "ticker": "TM",
+        "name": "Toyota Motor Corporation",
+        "sector": "Automotive",
+        "description": "A publicly traded automotive company listed here for interface demonstration.",
+    },
+)
+COMPANY_BY_TICKER = {company["ticker"]: company for company in SAMPLE_COMPANIES}
 
 # These fixed, invented factors provide a visual demo series; they are not market data,
 # a forecast, or a claim about what any investment may earn.
@@ -125,6 +217,20 @@ CREATE TABLE IF NOT EXISTS performance (
     value_cents INTEGER NOT NULL,
     is_simulated INTEGER NOT NULL DEFAULT 1,
     UNIQUE (portfolio_id, month_index)
+);
+
+CREATE TABLE IF NOT EXISTS favorites (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ticker TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, ticker)
+);
+
+CREATE TABLE IF NOT EXISTS user_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
 
@@ -239,6 +345,8 @@ BASE_TEMPLATE = """<!doctype html>
       <nav class="nav-links" aria-label="Main navigation">
         {% if current_user %}
           <a href="{{ url_for('dashboard') }}">Overview</a>
+          <a href="{{ url_for('marketplace') }}">Investments</a>
+          <a href="{{ url_for('premium') }}">Premium</a>
           <a href="{{ url_for('dashboard') }}">My portfolio</a>
           <a href="{{ url_for('activity') }}">Activity</a>
           <a href="{{ url_for('profile') }}">My profile</a>
@@ -248,6 +356,7 @@ BASE_TEMPLATE = """<!doctype html>
           </form>
         {% else %}
           <a href="{{ url_for('home') }}#how-it-works">How it works</a>
+          <a href="{{ url_for('premium') }}">Premium</a>
           <a href="{{ url_for('login') }}">Sign in</a>
           <a class="nav-cta" href="{{ url_for('signup') }}">Get started</a>
         {% endif %}
@@ -304,6 +413,55 @@ HOME_TEMPLATE = """
   </div>
 </section>
 <div class="notice small">This academic prototype does not open brokerage accounts, execute trades, conduct real KYC, hold assets, or transfer money. Do not enter real personal or financial information.</div>
+"""
+
+PREMIUM_TEMPLATE = """
+<section class="hero">
+  <div>
+    <div class="eyebrow">Premium | proposed subscription</div>
+    <h1>Your goals.<br>A clearer plan.</h1>
+    <p class="lead">A proposed next step for people who want to understand how their goals, time horizon, and stated budget could shape a more personal financial plan.</p>
+    <p class="small">Proposed price: <strong>$129 MXN per month</strong>. This is a classroom pitch concept, not an available subscription.</p>
+    <div class="button-row">
+      <a class="button" href="{{ url_for('signup') }}">Explore the free prototype</a>
+      <a class="button secondary" href="{{ url_for('home') }}">Back to VALORA</a>
+    </div>
+  </div>
+  <aside class="hero-panel">
+    <div class="eyebrow">The proposed value</div>
+    <blockquote>More context for your next decision.</blockquote>
+    <p class="small">A proposed analysis could organize a person's stated goals, time horizon, and self-reported budget into an understandable educational plan.</p>
+  </aside>
+</section>
+<section class="section">
+  <div class="eyebrow">A concept for guided learning</div>
+  <h2>What a future Premium plan could include</h2>
+  <div class="three-grid">
+    <article class="card">
+      <span class="step-number">01 | YOUR SITUATION</span>
+      <h3>A plan around your possibilities</h3>
+      <p class="small">Organize goals and a self-reported budget into educational scenarios, without connecting a bank account or moving money.</p>
+    </article>
+    <article class="card">
+      <span class="step-number">02 | CLEAR EXPLANATIONS</span>
+      <h3>Understand the trade-offs</h3>
+      <p class="small">Compare time horizons, risk concepts, and illustrative portfolio categories in beginner-friendly language.</p>
+    </article>
+    <article class="card">
+      <span class="step-number">03 | PROPOSED HUMAN GUIDANCE</span>
+      <h3>Consider questions with an advisor</h3>
+      <p class="small">The business concept could include access to a qualified human advisor, subject to future validation, approvals, and applicable requirements. No advisor is currently provided by VALORA.</p>
+    </article>
+  </div>
+</section>
+<section class="section">
+  <article class="card">
+    <div class="eyebrow">Proposed price</div>
+    <h2>$129 MXN / month</h2>
+    <p>This price is a proposal for a future subscription, not a charge or an active offer.</p>
+    <div class="notice small">Premium is not currently available. This page does not provide personalized financial advice, access to a human advisor, account opening, a payment method, or subscription enrollment. Do not enter payment or sensitive personal information.</div>
+  </article>
+</section>
 """
 
 
@@ -437,10 +595,138 @@ ACTIVITY_TEMPLATE = """
   <p class="muted">These entries are invented to demonstrate the activity view. They are not real transactions.</p>
   <div class="card table-wrap">
     <table><thead><tr><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>{% for item in activity_items %}<tr><td>{{ item.description }}</td><td>{{ format_mxn(item.amount_cents) }}</td><td><span class="badge">Simulated</span></td></tr>{% else %}<tr><td colspan="3">No simulated activity yet.</td></tr>{% endfor %}</tbody>
+      <tbody>{% for item in activity_items %}<tr><td>{{ item.description }}</td><td>{% if item.amount_cents is not none %}{{ format_mxn(item.amount_cents) }}{% else %}Not applicable{% endif %}</td><td><span class="badge">Simulated</span></td></tr>{% else %}<tr><td colspan="3">No simulated activity yet.</td></tr>{% endfor %}</tbody>
     </table>
   </div>
-  <p class="small">A simulated starting amount is not a deposit, payment or movement of money.</p>
+  <p class="small">These entries record prototype actions and illustrative values only. They are not deposits, payments, trades, or movements of money.</p>
+</section>
+"""
+
+MARKETPLACE_TEMPLATE = """
+<section class="section">
+  <div class="eyebrow">Explore investments</div>
+  <h1 style="font-size:2.8rem">Investment marketplace</h1>
+  <p class="muted">An educational catalog of illustrative portfolio mixes and example company listings. No transactions or market-data service are connected.</p>
+  <div class="notice small">Prices, daily changes, market capitalization, and historical returns are not available because no market-data provider is connected. No live or historical figures are fabricated.</div>
+</section>
+<section class="section">
+  <div class="dashboard-head">
+    <div><div class="eyebrow">Investment portfolios</div><h2>Explore by approach</h2></div>
+    <p class="small">Allocations, minimums, and horizons are classroom assumptions, not investment offers.</p>
+  </div>
+  <div class="allocation-grid">
+    {% for item in portfolios %}
+      <article class="card">
+        <span class="badge">{{ item.risk }}</span>
+        <h3 style="margin-top:14px">{{ item.name }}</h3>
+        <p class="small">{{ item.description }}</p>
+        <p><strong>Minimum (illustrative)</strong><br>{{ format_mxn(item.minimum_cents) }}</p>
+        <p><strong>Horizon</strong><br>{{ item.horizon }}</p>
+        <p><strong>Historical performance</strong><br>Not available</p>
+        <a class="button" href="{{ url_for('portfolio_catalog_detail', portfolio_key=item.key) }}">View allocation</a>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+<section class="section">
+  <div class="dashboard-head">
+    <div><div class="eyebrow">Stock marketplace</div><h2>Company directory</h2></div>
+    <a class="button secondary" href="{{ url_for('favorites') }}">My favorites ({{ favorite_count }})</a>
+  </div>
+  <form method="get" action="{{ url_for('marketplace') }}" class="card form-grid" style="margin-bottom:18px">
+    <div class="field"><label for="q">Search company or ticker</label><input id="q" name="q" value="{{ search }}" placeholder="For example, AAPL"></div>
+    <div class="field"><label for="sector">Filter by sector</label><select id="sector" name="sector"><option value="">All sectors</option>{% for sector in sectors %}<option value="{{ sector }}" {% if selected_sector == sector %}selected{% endif %}>{{ sector }}</option>{% endfor %}</select></div>
+    <div class="field full"><button class="button" type="submit">Apply filters</button> <a class="button secondary" href="{{ url_for('marketplace') }}">Clear</a></div>
+  </form>
+  <div class="allocation-grid">
+    {% for company in companies %}
+      <article class="card">
+        <div class="dashboard-head"><span class="badge">{{ company.ticker }}</span>{% if company.ticker in favorites %}<span class="small">Saved</span>{% endif %}</div>
+        <h3>{{ company.name }}</h3>
+        <p class="small">{{ company.sector }}</p>
+        <p><strong>Current price:</strong> Not available<br><strong>Daily change:</strong> Not available<br><strong>Market capitalization:</strong> Not available</p>
+        <p class="small">{{ company.description }}</p>
+        <div class="button-row">
+          <a class="button" href="{{ url_for('company_detail', ticker=company.ticker) }}">Company details</a>
+          <form method="post" action="{{ url_for('toggle_favorite', ticker=company.ticker) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="button secondary" type="submit">{{ "Remove favorite" if company.ticker in favorites else "Add favorite" }}</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <article class="card"><p>No companies match those filters.</p></article>
+    {% endfor %}
+  </div>
+</section>
+"""
+
+PORTFOLIO_CATALOG_DETAIL_TEMPLATE = """
+<section class="section">
+  <a href="{{ url_for('marketplace') }}">Back to investments</a>
+  <div class="eyebrow" style="margin-top:20px">Illustrative portfolio</div>
+  <h1 style="font-size:2.8rem">{{ item.name }}</h1>
+  <p class="lead">{{ item.description }}</p>
+  <div class="metric-grid">
+    <article class="card"><div class="metric-label">Risk level</div><h3>{{ item.risk }}</h3></article>
+    <article class="card"><div class="metric-label">Minimum investment (illustrative)</div><h3>{{ format_mxn(item.minimum_cents) }}</h3></article>
+    <article class="card"><div class="metric-label">Investment horizon (assumption)</div><h3>{{ item.horizon }}</h3></article>
+  </div>
+  <section class="section">
+    <h2>Asset allocation</h2>
+    <div class="card table-wrap"><table><thead><tr><th>Illustrative category</th><th>Allocation</th></tr></thead>
+      <tbody>{% for category, percent in item.allocation %}<tr><td>{{ category }}</td><td>{{ percent }}%</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="notice small">Historical performance is not available. No market data is connected; these allocations are classroom examples, not financial advice or a recommendation.</p>
+  </section>
+</section>
+"""
+
+COMPANY_DETAIL_TEMPLATE = """
+<section class="section">
+  <a href="{{ url_for('marketplace') }}">Back to investments</a>
+  <div class="eyebrow" style="margin-top:20px">Company directory | sample listing</div>
+  <h1 style="font-size:2.8rem">{{ company.name }}</h1>
+  <div class="metric-grid">
+    <article class="card"><div class="metric-label">Ticker</div><h3>{{ company.ticker }}</h3></article>
+    <article class="card"><div class="metric-label">Sector</div><h3>{{ company.sector }}</h3></article>
+    <article class="card"><div class="metric-label">Market data</div><h3>Not connected</h3></article>
+  </div>
+  <article class="card section">
+    <p>{{ company.description }}</p>
+    <p><strong>Current price:</strong> Not available<br><strong>Daily percentage change:</strong> Not available<br><strong>Market capitalization:</strong> Not available</p>
+    <p class="notice small">This directory uses company names and tickers only as examples. It does not display quotes, historical prices, or investment advice.</p>
+  </article>
+  <form method="post" action="{{ url_for('toggle_favorite', ticker=company.ticker) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ url_for('company_detail', ticker=company.ticker) }}">
+    <button class="button" type="submit">{{ "Remove from favorites" if is_favorite else "Add to favorites" }}</button>
+  </form>
+</section>
+"""
+
+FAVORITES_TEMPLATE = """
+<section class="section">
+  <div class="eyebrow">Your saved companies</div>
+  <h1 style="font-size:2.8rem">My favorites</h1>
+  <p class="muted">Favorites are private to your account. Market quotes are not connected.</p>
+  <div class="allocation-grid">
+    {% for company in companies %}
+      <article class="card">
+        <span class="badge">{{ company.ticker }}</span><h3 style="margin-top:14px">{{ company.name }}</h3>
+        <p class="small">{{ company.sector }}</p>
+        <a class="button" href="{{ url_for('company_detail', ticker=company.ticker) }}">Company details</a>
+        <form method="post" action="{{ url_for('toggle_favorite', ticker=company.ticker) }}" style="display:inline-block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="next" value="{{ url_for('favorites') }}">
+          <button class="button secondary" type="submit">Remove favorite</button>
+        </form>
+      </article>
+    {% else %}
+      <article class="card"><p>You have no saved companies yet.</p><a class="button" href="{{ url_for('marketplace') }}">Explore investments</a></article>
+    {% endfor %}
+  </div>
 </section>
 """
 
@@ -507,6 +793,10 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             return redirect(url_for("profile"))
         return render_page(HOME_TEMPLATE, "Thoughtfully invested")
 
+    @app.get("/premium")
+    def premium():
+        return render_page(PREMIUM_TEMPLATE, "Premium proposal")
+
     @app.route("/signup", methods=["GET", "POST"])
     def signup():
         if g.current_user:
@@ -537,6 +827,11 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 else:
                     session.clear()
                     session["user_id"] = cursor.lastrowid
+                    get_db().execute(
+                        "INSERT INTO user_activity (user_id, description) VALUES (?, ?)",
+                        (cursor.lastrowid, "Created a fictional VALORA demo account"),
+                    )
+                    get_db().commit()
                     flash("Account created. Next, complete your illustrative financial profile.", "success")
                     return redirect(url_for("profile"))
         return render_page(SIGNUP_TEMPLATE, "Create account", error=error, values=values)
@@ -611,6 +906,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                         experience=experience,
                         investor_profile=investor_profile,
                     )
+                    get_db().execute(
+                        "INSERT INTO user_activity (user_id, description) VALUES (?, ?)",
+                        (
+                            g.current_user["id"],
+                            "Completed or updated an illustrative financial profile",
+                        ),
+                    )
+                    get_db().commit()
                     flash("Your illustrative profile and portfolio are ready.", "success")
                     return redirect(url_for("dashboard"))
         return render_page(
@@ -646,22 +949,175 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     @app.get("/activity")
     @login_required
     def activity():
-        items = get_db().execute(
+        transactions = get_db().execute(
             """
-            SELECT t.description, t.amount_cents
+            SELECT t.description, t.amount_cents, t.created_at
             FROM transactions AS t
             JOIN portfolios AS p ON p.id = t.portfolio_id
             WHERE p.user_id = ? AND t.is_simulated = 1
-            ORDER BY t.id DESC
+            ORDER BY t.created_at DESC, t.id DESC
             """,
             (g.current_user["id"],),
         ).fetchall()
+        user_events = get_db().execute(
+            """
+            SELECT description, created_at
+            FROM user_activity
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id DESC
+            """,
+            (g.current_user["id"],),
+        ).fetchall()
+        items = [
+            {
+                "description": row["description"],
+                "amount_cents": row["amount_cents"],
+                "created_at": row["created_at"],
+            }
+            for row in transactions
+        ]
+        items.extend(
+            {
+                "description": row["description"],
+                "amount_cents": None,
+                "created_at": row["created_at"],
+            }
+            for row in user_events
+        )
+        items.sort(key=lambda item: item["created_at"], reverse=True)
         return render_page(
             ACTIVITY_TEMPLATE,
             "Illustrative activity",
             activity_items=items,
             format_mxn=format_mxn,
         )
+
+    @app.get("/marketplace")
+    @login_required
+    def marketplace():
+        search = request.args.get("q", "").strip()[:80]
+        selected_sector = request.args.get("sector", "").strip()
+        sectors = sorted({company["sector"] for company in SAMPLE_COMPANIES})
+        if selected_sector not in sectors:
+            selected_sector = ""
+        search_lower = search.casefold()
+        companies = [
+            company
+            for company in SAMPLE_COMPANIES
+            if (not search_lower or search_lower in company["name"].casefold()
+                or search_lower in company["ticker"].casefold())
+            and (not selected_sector or company["sector"] == selected_sector)
+        ]
+        favorite_rows = get_db().execute(
+            "SELECT ticker FROM favorites WHERE user_id = ?",
+            (g.current_user["id"],),
+        ).fetchall()
+        favorite_tickers = {row["ticker"] for row in favorite_rows}
+        portfolio_items = [
+            {"key": key, **value}
+            for key, value in MARKETPLACE_PORTFOLIOS.items()
+        ]
+        return render_page(
+            MARKETPLACE_TEMPLATE,
+            "Investment marketplace",
+            portfolios=portfolio_items,
+            companies=companies,
+            sectors=sectors,
+            selected_sector=selected_sector,
+            search=search,
+            favorites=favorite_tickers,
+            favorite_count=len(favorite_tickers),
+            format_mxn=format_mxn,
+            request=request,
+        )
+
+    @app.get("/portfolios/<portfolio_key>")
+    @login_required
+    def portfolio_catalog_detail(portfolio_key: str):
+        item = MARKETPLACE_PORTFOLIOS.get(portfolio_key)
+        if item is None:
+            abort(404)
+        return render_page(
+            PORTFOLIO_CATALOG_DETAIL_TEMPLATE,
+            f"{item['name']} illustrative portfolio",
+            item=item,
+            format_mxn=format_mxn,
+        )
+
+    @app.get("/companies/<ticker>")
+    @login_required
+    def company_detail(ticker: str):
+        company = COMPANY_BY_TICKER.get(ticker.upper())
+        if company is None:
+            abort(404)
+        is_favorite = get_db().execute(
+            "SELECT 1 FROM favorites WHERE user_id = ? AND ticker = ?",
+            (g.current_user["id"], company["ticker"]),
+        ).fetchone() is not None
+        return render_page(
+            COMPANY_DETAIL_TEMPLATE,
+            f"{company['name']} sample listing",
+            company=company,
+            is_favorite=is_favorite,
+        )
+
+    @app.get("/favorites")
+    @login_required
+    def favorites():
+        rows = get_db().execute(
+            """
+            SELECT ticker
+            FROM favorites
+            WHERE user_id = ?
+            ORDER BY created_at DESC, ticker
+            """,
+            (g.current_user["id"],),
+        ).fetchall()
+        companies = [
+            COMPANY_BY_TICKER[row["ticker"]]
+            for row in rows
+            if row["ticker"] in COMPANY_BY_TICKER
+        ]
+        return render_page(FAVORITES_TEMPLATE, "My favorites", companies=companies)
+
+    @app.post("/favorites/<ticker>")
+    @login_required
+    def toggle_favorite(ticker: str):
+        validate_csrf()
+        company = COMPANY_BY_TICKER.get(ticker.upper())
+        if company is None:
+            abort(404)
+        user_id = g.current_user["id"]
+        connection = get_db()
+        existing = connection.execute(
+            "SELECT 1 FROM favorites WHERE user_id = ? AND ticker = ?",
+            (user_id, company["ticker"]),
+        ).fetchone()
+        if existing:
+            connection.execute(
+                "DELETE FROM favorites WHERE user_id = ? AND ticker = ?",
+                (user_id, company["ticker"]),
+            )
+            description = f"Removed {company['ticker']} from saved favorites (simulated)"
+            flash(f"{company['ticker']} removed from favorites.", "success")
+        else:
+            connection.execute(
+                "INSERT INTO favorites (user_id, ticker) VALUES (?, ?)",
+                (user_id, company["ticker"]),
+            )
+            description = f"Added {company['ticker']} to saved favorites (simulated)"
+            flash(f"{company['ticker']} added to favorites.", "success")
+        connection.execute(
+            "INSERT INTO user_activity (user_id, description) VALUES (?, ?)",
+            (user_id, description),
+        )
+        connection.commit()
+
+        return_to = request.form.get("next", "")
+        parsed_return_to = urlsplit(return_to)
+        if return_to.startswith("/") and not return_to.startswith("//") and not parsed_return_to.netloc:
+            return redirect(return_to)
+        return redirect(url_for("marketplace"))
 
     def render_portfolio(portfolio_id: int):
         portfolio = get_db().execute(

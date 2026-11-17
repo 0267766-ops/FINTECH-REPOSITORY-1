@@ -1,9 +1,8 @@
 # VALORA
 
 VALORA is a FIN506 WealthTech MVP prototype for young professionals in Mexico. It
-demonstrates the four-step flow in `SPEC.md`: account creation, a basic financial
-questionnaire, an explainable investor-profile and category-level portfolio, and a
-dashboard with simulated performance.
+demonstrates the core account-to-dashboard flow and the approved simulated
+investment marketplace described in `SPEC.md`.
 
 ## Run locally
 
@@ -36,6 +35,17 @@ separately through the course submission process—not in this repository.
 - Shows only broad illustrative asset categories, not named financial products.
 - Labels all sample balances, activity and performance as simulated.
 - Uses a forest-green page background with ivory cards and high-contrast text.
+- Includes an authenticated investment catalog with Conservative, Moderate,
+  Aggressive, and International illustrative portfolio categories, plus a searchable
+  and filterable example company directory, detail pages, and private favorites.
+- Includes a public Premium value-proposition concept page proposing MXN 129/month.
+  It is informational only: no Premium service, advisor, personalized advice, or
+  payment/subscription enrollment is available.
+- Shows no live or fabricated stock prices, daily changes, market capitalization, or
+  historical returns. These data are marked unavailable because no market-data API
+  is connected.
+- Records fictional account/profile setup and favorite changes in per-user
+  simulated activity. These are not money movements or trades.
 - Does not perform real KYC/AML, connect to a brokerage, execute investments, transfer
   money, custody assets, use live market data, or guarantee returns.
 - Does not make claims about Mexican financial regulation.
@@ -58,9 +68,17 @@ The free service's local SQLite file is ephemeral and may be lost when the servi
 restarts or is redeployed. Use fictional demo data only; this prototype is not
 configured for persistent or real financial data.
 
+The marketplace's allocations, minimum amounts, and investment horizons are
+classroom assumptions, not offers or financial advice. No bank, brokerage, or
+market-data provider is connected.
+
+The Premium page is a business-pitch concept only. Its proposed price and benefits
+do not represent an active product or service.
+
 ## Check
 
-Run the end-to-end, profile-rule, activity-history, cross-user access and CSRF tests:
+Run the end-to-end, marketplace, activity-history, profile-rule, cross-user access,
+and CSRF tests:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest -v test_app.py
@@ -68,5 +86,6 @@ Run the end-to-end, profile-rule, activity-history, cross-user access and CSRF t
 
 ## Project records
 
+- [Approved scope addendum](./SPEC.md)
 - [Decision log](./DECISIONS.md)
 - [AI work log](./BITACORA.md)

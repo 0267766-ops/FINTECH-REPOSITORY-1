@@ -31,6 +31,15 @@ class ValoraAppTests(unittest.TestCase):
         self.assertIn(b"--forest: #173b32", response.data)
         self.assertIn(b"background: var(--ivory); color: var(--charcoal)", response.data)
 
+    def test_premium_proposal_is_public_and_does_not_offer_advice_or_payment(self):
+        response = self.client.get("/premium")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Premium | proposed subscription", response.data)
+        self.assertIn(b"$129 MXN per month", response.data)
+        self.assertIn(b"No advisor is currently provided by VALORA", response.data)
+        self.assertIn(b"not a charge or an active offer", response.data)
+        self.assertNotIn(b"name=\"card_number\"", response.data)
+
     @staticmethod
     def csrf_token(response):
         match = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
@@ -164,6 +173,91 @@ class ValoraAppTests(unittest.TestCase):
         self.assertEqual(second_activity.status_code, 200)
         self.assertIn(b"$12,345.00 MXN", second_activity.data)
         self.assertNotIn(b"$50,000.00 MXN", second_activity.data)
+
+    def test_marketplace_requires_login_and_displays_only_non_live_market_data(self):
+        response = self.client.get("/marketplace")
+        self.assertEqual(response.status_code, 302)
+
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        self.complete_profile(self.client)
+        response = self.client.get("/marketplace")
+        self.assertEqual(response.status_code, 200)
+        for portfolio_name in (b"Conservative", b"Moderate", b"Aggressive", b"International"):
+            self.assertIn(portfolio_name, response.data)
+        self.assertIn(b"Current price:</strong> Not available", response.data)
+        self.assertIn(b"Historical performance</strong><br>Not available", response.data)
+        self.assertIn(b"Apple Inc.", response.data)
+
+        response = self.client.get("/marketplace?q=NVDA&sector=Semiconductors")
+        self.assertIn(b"NVIDIA Corporation", response.data)
+        self.assertNotIn(b"Apple Inc.", response.data)
+        response = self.client.get("/marketplace?q=NVDA&sector=Financials")
+        self.assertIn(b"No companies match those filters.", response.data)
+
+    def test_portfolio_and_company_detail_pages(self):
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        self.complete_profile(self.client)
+
+        portfolio = self.client.get("/portfolios/moderate")
+        self.assertEqual(portfolio.status_code, 200)
+        self.assertIn(b"Asset allocation", portfolio.data)
+        self.assertIn(b"Historical performance is not available", portfolio.data)
+        self.assertEqual(self.client.get("/portfolios/not-a-portfolio").status_code, 404)
+
+        company = self.client.get("/companies/AAPL")
+        self.assertEqual(company.status_code, 200)
+        self.assertIn(b"Apple Inc.", company.data)
+        self.assertIn(b"Market data</div><h3>Not connected</h3>", company.data)
+        self.assertEqual(self.client.get("/companies/UNKNOWN").status_code, 404)
+
+    def test_favorites_are_private_and_logged_as_simulated_activity(self):
+        first_client = self.client
+        self.create_account(first_client, "First User", "first@example.test")
+        self.complete_profile(first_client)
+
+        marketplace = first_client.get("/marketplace")
+        first_client.post(
+            "/favorites/AAPL",
+            data={
+                "csrf_token": self.csrf_token(marketplace),
+                "next": "/favorites",
+            },
+            follow_redirects=True,
+        )
+        first_favorites = first_client.get("/favorites")
+        self.assertIn(b"Apple Inc.", first_favorites.data)
+        first_activity = first_client.get("/activity")
+        self.assertIn(b"Added AAPL to saved favorites (simulated)", first_activity.data)
+
+        second_client = self.app.test_client()
+        self.create_account(second_client, "Second User", "second@example.test")
+        self.complete_profile(second_client)
+        self.assertNotIn(b"Apple Inc.", second_client.get("/favorites").data)
+        self.assertNotIn(
+            b"Added AAPL to saved favorites",
+            second_client.get("/activity").data,
+        )
+
+        detail = first_client.get("/companies/AAPL")
+        remove = first_client.post(
+            "/favorites/AAPL",
+            data={
+                "csrf_token": self.csrf_token(detail),
+                "next": "/favorites",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn(b"You have no saved companies yet.", remove.data)
+        self.assertIn(
+            b"Removed AAPL from saved favorites (simulated)",
+            first_client.get("/activity").data,
+        )
+
+    def test_favorite_changes_require_valid_csrf(self):
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        self.complete_profile(self.client)
+        response = self.client.post("/favorites/AAPL", data={"csrf_token": "invalid"})
+        self.assertEqual(response.status_code, 400)
 
     def test_login_logout_and_csrf_protection(self):
         self.create_account(self.client, "Demo User", "demo@example.test")
