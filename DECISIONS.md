@@ -114,6 +114,26 @@ classroom prototype. It is not a substitute for partner or instructor approval.
 - **Future changes:** Actual advice, integrations, or billing
   require separate operational, legal, regulatory, and partner review.
 
+## D-010: Separate account sections and visualize saved financial profile
+
+- **Status:** Implemented as a classroom dashboard
+- **Decision:** Overview is an account summary, My Profile is a financial-results
+  dashboard, and My Portfolio is the simulated portfolio view. Preserve the existing
+  questionnaire and its response logic.
+- **Decision:** Supplement missing dashboard fields through a separate optional
+  details form. Calculate requested financial indicators only when their inputs are
+  provided; display unavailable information as "Not provided." Do not relabel the
+  existing monthly-income answer as net income.
+- **Formulas:** Savings rate = savings / net income; debt-to-income = debt payments /
+  net income; expense ratio = expenses / net income; net worth = assets - liabilities;
+  emergency-fund coverage = liquid savings / monthly expenses; disposable income =
+  net income - expenses - monthly debt payments.
+- **Portfolio examples:** Show educational profile-linked stock examples from the
+  Investments catalog and an illustrative government-bond category. These represent
+  no real holdings and are not an investment recommendation.
+- **Verification:** Automated tests cover the distinct pages, saved questionnaire
+  results, derived values, missing data, and profile-specific illustrative holdings.
+
 ## Open item: Public repository database file
 
 The public deployment repository was observed to contain `valora.db`. Its single

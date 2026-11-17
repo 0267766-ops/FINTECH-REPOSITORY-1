@@ -106,3 +106,20 @@ information out of this file.
   classroom prototype.
 - **Reviewer flags:** Run the automated suite and deploy the updated files before
   claiming the public page reflects this change.
+
+## 2026-11-17 - Financial profile dashboard and distinct account sections
+
+- **Goal:** Separate Overview, My Portfolio, and My Profile, and show questionnaire
+  results as a financial dashboard without changing the existing questionnaire.
+- **AI did:** Added an optional supplementary details form for missing financial
+  values, KPI cards, responsive cash-flow visualizations, and calculations for
+  savings rate, debt-to-income, expense ratio, net worth, emergency-fund coverage,
+  and disposable income. My Portfolio now shows simulated profile-linked stock
+  examples and a government-bond category from the Investments catalog.
+- **We decided:** Unknown values remain "Not provided"; missing expenses, assets, or
+  debt are never inferred. Portfolio examples are educational and not recommendations
+  or actual positions. Approximate questionnaire income is not assumed to be net;
+  the user provides net monthly income separately for the requested calculations.
+- **Reviewer flags:** All 14 automated tests passed, including distinct-page
+  navigation, derived financial values, deficit and missing-data handling, and
+  profile-linked illustrative holdings.

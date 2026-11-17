@@ -34,6 +34,37 @@ real financial services or integrations.
 - Record fictional account/profile setup and favorite changes in the user's
   simulated activity history. Label these as simulated actions, not transactions.
 
+## Profile dashboard and navigation
+
+- Keep Overview, My Portfolio, and My Profile as distinct pages; do not render the
+  same questionnaire or portfolio view for all three navigation items.
+- Preserve the existing questionnaire fields and response logic. After completion,
+  My Profile presents the saved answers in a responsive financial dashboard.
+- Show the existing monthly-income answer as entered; do not call it net income
+  because the questionnaire does not specify net versus gross.
+- Allow users to optionally add missing expenses, debt, total assets, age,
+  employment status, occupation, income stability, and income sources in a separate
+  supplementary form. These optional details do not alter the questionnaire.
+- Collect net monthly income, monthly savings, monthly debt payments, liquid savings,
+  monthly expenses, total assets, and total liabilities in the optional details
+  form for the requested indicators. The questionnaire's approximate monthly income
+  is not assumed to be net income.
+- Show unavailable values as "Not provided". Calculate monthly savings only when
+  provided; calculate the indicators only when all their required values are
+  provided. Do not infer missing data.
+- Use these exact calculations: Savings Rate = monthly savings / net income × 100;
+  Debt-to-Income = monthly debt payments / net income × 100; Expense Ratio =
+  monthly expenses / net income × 100; Net Worth = total assets − total liabilities;
+  Emergency Fund = liquid savings / monthly expenses (months covered); and
+  Disposable Income = net income − expenses − monthly debt payments.
+- Visualize income versus expenses, monthly cash flow, income distribution, and
+  savings rate using the entered values only. Explain calculations and handle
+  expenses above income without depicting a positive savings amount.
+- My Portfolio may show profile-specific examples from the Investments catalog,
+  including sample stock names and an illustrative government-bond category.
+  Percentages are simulated allocations only; do not imply actual positions,
+  executed orders, exact bonds, or personalized investment recommendations.
+
 ## Premium subscription concept page
 
 - Establish VALORA as a trustworthy financial-education brand, rather than only

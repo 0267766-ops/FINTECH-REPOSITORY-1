@@ -149,6 +149,28 @@ SAMPLE_COMPANIES = (
 )
 COMPANY_BY_TICKER = {company["ticker"]: company for company in SAMPLE_COMPANIES}
 
+MODEL_HOLDINGS = {
+    "Conservative": (
+        ("Illustrative government bond category", "Fixed income", 70, None),
+        ("Apple Inc.", "Stock example", 10, "AAPL"),
+        ("The Coca-Cola Company", "Stock example", 10, "KO"),
+        ("Liquidity category", "Liquidity", 10, None),
+    ),
+    "Balanced": (
+        ("Illustrative government bond category", "Fixed income", 50, None),
+        ("Apple Inc.", "Stock example", 20, "AAPL"),
+        ("Microsoft Corporation", "Stock example", 20, "MSFT"),
+        ("Liquidity category", "Liquidity", 10, None),
+    ),
+    "Growth": (
+        ("Illustrative government bond category", "Fixed income", 30, None),
+        ("Apple Inc.", "Stock example", 20, "AAPL"),
+        ("Microsoft Corporation", "Stock example", 20, "MSFT"),
+        ("NVIDIA Corporation", "Stock example", 20, "NVDA"),
+        ("Liquidity category", "Liquidity", 10, None),
+    ),
+}
+
 # These fixed, invented factors provide a visual demo series; they are not market data,
 # a forecast, or a claim about what any investment may earn.
 SIMULATED_MONTHLY_FACTORS = (
@@ -182,6 +204,24 @@ CREATE TABLE IF NOT EXISTS financial_profiles (
     decline_response TEXT NOT NULL,
     experience TEXT NOT NULL,
     investor_profile TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS financial_details (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    monthly_expenses_cents INTEGER,
+    total_debt_cents INTEGER,
+    monthly_net_income_cents INTEGER,
+    monthly_savings_cents INTEGER,
+    monthly_debt_payments_cents INTEGER,
+    liquid_savings_cents INTEGER,
+    total_liabilities_cents INTEGER,
+    total_assets_cents INTEGER,
+    age INTEGER,
+    employment_status TEXT,
+    occupation TEXT,
+    income_stability TEXT,
+    income_sources TEXT,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -295,6 +335,9 @@ BASE_TEMPLATE = """<!doctype html>
     .button { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; padding: 13px 20px; background: var(--ivory); color: var(--forest); font-weight: 650; text-decoration: none; cursor: pointer; }
     .button:hover { background: #ded8c9; }
     .button.secondary { background: transparent; color: var(--ivory); border: 1px solid var(--ivory); }
+    .card .button { background: var(--forest); color: var(--ivory); }
+    .card .button:hover { background: #244a40; }
+    .card .button.secondary { background: transparent; color: var(--forest); border-color: var(--forest); }
     .button-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
     .form-wrap { width: min(650px, 100%); margin: 14px auto; }
     .form-card { border: 1px solid var(--line); border-radius: 20px; padding: clamp(22px, 5vw, 38px); }
@@ -315,6 +358,24 @@ BASE_TEMPLATE = """<!doctype html>
     .chart-column { display: flex; flex: 1; height: 100%; flex-direction: column; justify-content: end; align-items: center; gap: 8px; }
     .chart-bar { width: min(38px, 68%); min-height: 4px; background: var(--forest); border-radius: 5px 5px 0 0; }
     .chart-label { color: var(--muted); font-size: .72rem; }
+    .financial-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .financial-fact { padding: 16px; border-radius: 12px; background: #fff; border: 1px solid var(--line); }
+    .financial-fact dt { color: var(--muted); font-size: .82rem; }
+    .financial-fact dd { margin: 8px 0 0; color: var(--forest); font-weight: 650; }
+    .cashflow-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px; margin: 14px 0; }
+    .cashflow-track { height: 12px; border-radius: 99px; overflow: hidden; background: #e8e9e2; }
+    .cashflow-fill { height: 100%; background: var(--forest); border-radius: inherit; }
+    .cashflow-fill.expense { background: #b19d70; }
+    .donut-wrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+    .donut { width: 150px; height: 150px; flex: 0 0 150px; display: grid; place-items: center; border-radius: 50%; position: relative; }
+    .donut::after { content: ""; width: 92px; height: 92px; border-radius: 50%; background: var(--ivory); position: absolute; }
+    .donut-label { position: relative; z-index: 1; text-align: center; color: var(--forest); font-weight: 700; }
+    .legend { display: grid; gap: 9px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-swatch { width: 11px; height: 11px; border-radius: 50%; background: var(--forest); }
+    .legend-swatch.debt { background: #b19d70; }
+    .legend-swatch.savings { background: var(--champagne); }
+    .legend-swatch.unallocated { background: #e8e9e2; border: 1px solid var(--line); }
     .allocation-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 16px 0; }
     .allocation-track { grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 99px; background: #e8e9e2; }
     .allocation-track span { display: block; height: 100%; background: var(--forest); }
@@ -333,9 +394,10 @@ BASE_TEMPLATE = """<!doctype html>
       .nav { align-items: flex-start; flex-direction: column; padding: 16px 0; gap: 10px; }
       .nav-links { gap: 12px 18px; }
       .three-grid, .metric-grid, .allocation-grid { grid-template-columns: 1fr; }
+      .financial-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .dashboard-head { flex-direction: column; }
     }
-    @media (max-width: 500px) { .shell { width: min(100% - 28px, 1120px); } .form-grid { grid-template-columns: 1fr; } .field.full { grid-column: auto; } main { padding-top: 26px; } }
+    @media (max-width: 500px) { .shell { width: min(100% - 28px, 1120px); } .form-grid, .financial-facts { grid-template-columns: 1fr; } .field.full { grid-column: auto; } main { padding-top: 26px; } .cashflow-row { grid-template-columns: 90px 1fr; } .cashflow-row strong { grid-column: 2; } }
   </style>
 </head>
 <body>
@@ -347,7 +409,7 @@ BASE_TEMPLATE = """<!doctype html>
           <a href="{{ url_for('dashboard') }}">Overview</a>
           <a href="{{ url_for('marketplace') }}">Investments</a>
           <a href="{{ url_for('premium') }}">Premium</a>
-          <a href="{{ url_for('dashboard') }}">My portfolio</a>
+          <a href="{{ url_for('my_portfolio') }}">My portfolio</a>
           <a href="{{ url_for('activity') }}">Activity</a>
           <a href="{{ url_for('profile') }}">My profile</a>
           <form method="post" action="{{ url_for('logout') }}" style="margin:0">
@@ -557,12 +619,140 @@ PROFILE_TEMPLATE = """
 """
 
 
-DASHBOARD_TEMPLATE = """
+PROFILE_DASHBOARD_TEMPLATE = """
 <section class="dashboard-head">
   <div>
-    <div class="eyebrow">Your VALORA overview</div>
-    <h1 style="font-size:2.65rem">A clearer view, {{ user_name }}.</h1>
-    <p class="muted">An illustrative simulation based only on the fictional profile you entered.</p>
+    <div class="eyebrow">My profile | financial overview</div>
+    <h1 style="font-size:2.65rem">Your financial picture, {{ user_name }}.</h1>
+    <p class="muted">Based on your questionnaire answers and any additional details you chose to provide.</p>
+  </div>
+  <div><span class="badge">{{ investor_profile }} profile</span> <a class="button secondary" href="{{ url_for('profile', edit='1') }}">Edit questionnaire</a></div>
+</section>
+<section class="metric-grid" aria-label="Personal financial overview">
+  <article class="card metric"><div class="metric-label">Monthly net income</div><div class="metric-value">{{ format_mxn(monthly_net_income_cents) if monthly_net_income_cents is not none else "Not provided" }}</div><p class="small">Use take-home income. The questionnaire amount is {{ format_mxn(monthly_income_cents) }} and is not assumed to be net.</p></article>
+  <article class="card metric"><div class="metric-label">Monthly expenses</div><div class="metric-value">{{ format_mxn(monthly_expenses_cents) if monthly_expenses_cents is not none else "Not provided" }}</div><p class="small">Optional amount you entered.</p></article>
+  <article class="card metric"><div class="metric-label">Monthly savings</div><div class="metric-value">{{ format_mxn(monthly_savings_cents) if monthly_savings_cents is not none else "Not provided" }}</div><p class="small">Entered by you; used to calculate savings rate.</p></article>
+  <article class="card metric"><div class="metric-label">Monthly debt payments</div><div class="metric-value">{{ format_mxn(monthly_debt_payments_cents) if monthly_debt_payments_cents is not none else "Not provided" }}</div><p class="small">Used for debt-to-income and disposable income.</p></article>
+  <article class="card metric"><div class="metric-label">Net worth</div><div class="metric-value">{{ format_mxn(net_worth_cents) if net_worth_cents is not none else "Not provided" }}</div><p class="small">Calculated only when total assets and total liabilities are provided.</p></article>
+</section>
+<section class="section">
+  <div class="eyebrow">Key financial indicators</div><h2>Calculated from your entries</h2>
+  <div class="allocation-grid">
+    <article class="card metric"><div class="metric-label">Savings Rate</div><div class="metric-value">{{ savings_rate_label }}</div><p class="small">Monthly savings / net income × 100</p></article>
+    <article class="card metric"><div class="metric-label">Debt-to-Income</div><div class="metric-value">{{ debt_to_income_label }}</div><p class="small">Monthly debt payments / net income × 100</p></article>
+    <article class="card metric"><div class="metric-label">Expense Ratio</div><div class="metric-value">{{ expense_ratio_label }}</div><p class="small">Monthly expenses / net income × 100</p></article>
+    <article class="card metric"><div class="metric-label">Net Worth</div><div class="metric-value">{{ format_mxn(net_worth_cents) if net_worth_cents is not none else "Not provided" }}</div><p class="small">Total assets − total liabilities</p></article>
+    <article class="card metric"><div class="metric-label">Emergency Fund</div><div class="metric-value">{{ emergency_fund_label }}</div><p class="small">Liquid savings / monthly expenses (months covered)</p></article>
+    <article class="card metric"><div class="metric-label">Disposable Income</div><div class="metric-value">{{ format_mxn(disposable_income_cents) if disposable_income_cents is not none else "Not provided" }}</div><p class="small">Net income − expenses − monthly debt payments</p></article>
+  </div>
+</section>
+<section class="section">
+  <div class="dashboard-head"><div><div class="eyebrow">Financial situation</div><h2>Income profile</h2></div></div>
+  <dl class="card financial-facts">
+    <div class="financial-fact"><dt>Age</dt><dd>{{ details_values.age or "Not provided" }}</dd></div>
+    <div class="financial-fact"><dt>Employment status</dt><dd>{{ details_values.employment_status or "Not provided" }}</dd></div>
+    <div class="financial-fact"><dt>Occupation</dt><dd>{{ details_values.occupation or "Not provided" }}</dd></div>
+    <div class="financial-fact"><dt>Monthly income (questionnaire)</dt><dd>{{ format_mxn(monthly_income_cents) }}</dd></div>
+    <div class="financial-fact"><dt>Income stability</dt><dd>{{ details_values.income_stability or "Not provided" }}</dd></div>
+    <div class="financial-fact"><dt>Income sources</dt><dd>{{ details_values.income_sources or "Not provided" }}</dd></div>
+  </dl>
+</section>
+<section class="section">
+  <div class="eyebrow">Visualizations</div><h2>Your monthly cash flow</h2>
+  <div class="three-grid">
+    <article class="card">
+      <h3>Income vs. expenses</h3>
+      {% if monthly_expenses_cents is not none %}
+        <div class="cashflow-row"><span>{{ chart_income_label }}</span><div class="cashflow-track"><div class="cashflow-fill" style="width:{{ income_bar_width }}%" title="{{ chart_income_label }}: {{ format_mxn(chart_income_cents) }}"></div></div><strong>{{ format_mxn(chart_income_cents) }}</strong></div>
+        <div class="cashflow-row"><span>Expenses</span><div class="cashflow-track"><div class="cashflow-fill expense" style="width:{{ expense_bar_width }}%" title="Monthly expenses: {{ format_mxn(monthly_expenses_cents) }}"></div></div><strong>{{ format_mxn(monthly_expenses_cents) }}</strong></div>
+      {% else %}<p class="small">Add monthly expenses below to compare income and expenses.</p>{% endif %}
+    </article>
+    <article class="card">
+      <h3>Monthly cash flow</h3>
+      {% if disposable_income_cents is not none %}
+        <p><strong>{{ "Available" if disposable_income_cents >= 0 else "Shortfall" }}:</strong> {{ format_mxn(disposable_income_cents) }}</p>
+        <p class="small">Net income − expenses − monthly debt payments.</p>
+      {% else %}<p class="small">Not available until net income, expenses, and monthly debt payments are provided.</p>{% endif %}
+    </article>
+    <article class="card">
+      <h3>Financial distribution</h3>
+      {% if distribution_available %}
+        <div class="donut-wrap">
+          <div class="donut" role="img" aria-label="Monthly net income distribution: expenses {{ expense_ratio_label }}, debt payments {{ debt_to_income_label }}, savings {{ savings_rate_label }}, unallocated {{ remaining_share_label }}" title="Net income distribution" style="background:conic-gradient(var(--forest) 0 {{ expense_share }}%, #b19d70 {{ expense_share }}% {{ expense_plus_debt_share }}%, #c7b58a {{ expense_plus_debt_share }}% {{ committed_share }}%, #e8e9e2 {{ committed_share }}% 100%)">
+            <span class="donut-label">Net income</span>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-swatch"></span><span>Expenses: {{ expense_ratio_label }}</span></div>
+            <div class="legend-item"><span class="legend-swatch debt"></span><span>Debt payments: {{ debt_to_income_label }}</span></div>
+            <div class="legend-item"><span class="legend-swatch savings"></span><span>Savings: {{ savings_rate_label }}</span></div>
+            <div class="legend-item"><span class="legend-swatch unallocated"></span><span>Unallocated: {{ remaining_share_label }}</span></div>
+          </div>
+        </div>
+      {% else %}<p class="small">Enter net income, expenses, debt payments, and savings to see the distribution. If those amounts exceed income, the chart is withheld and the indicators show the entered values.</p>{% endif %}
+    </article>
+  </div>
+  <article class="card section">
+    <h3>Savings overview</h3>
+    {% if savings_rate is not none %}
+      <p><strong>{{ savings_rate_label }}</strong> of monthly net income</p>
+      <div class="cashflow-track" role="img" aria-label="Savings rate {{ savings_rate_label }}"><div class="cashflow-fill" style="width:{{ savings_bar_width }}%" title="Savings rate: {{ savings_rate_label }}"></div></div>
+      <p class="small">Calculated from monthly savings and net income you entered.</p>
+    {% else %}<p class="small">Not available until monthly savings and positive net income are provided.</p>{% endif %}
+  </article>
+</section>
+<section class="section">
+  <details class="card">
+    <summary><strong>Add or update optional financial details</strong></summary>
+    <p class="small">These optional fields supplement—but do not change—the original questionnaire. The questionnaire asks for approximate monthly income but does not confirm it is net, so enter take-home net income here for these calculations. Enter monthly savings, debt payments, liquid savings, expenses, assets, and liabilities as well. Leave unknown amounts blank; they will remain “Not provided.”</p>
+    <form method="post" action="{{ url_for('save_profile_details') }}" class="form-grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field"><label for="monthly_net_income">Monthly net income (MXN)</label><input id="monthly_net_income" name="monthly_net_income" type="number" min="0" step="0.01" value="{{ details_values.monthly_net_income }}" placeholder="Take-home income after deductions"></div>
+      <div class="field"><label for="monthly_savings">Monthly savings (MXN)</label><input id="monthly_savings" name="monthly_savings" type="number" min="0" step="0.01" value="{{ details_values.monthly_savings }}"></div>
+      <div class="field"><label for="age">Age</label><input id="age" name="age" type="number" min="0" max="120" value="{{ details_values.age }}"></div>
+      <div class="field"><label for="employment_status">Employment status</label><input id="employment_status" name="employment_status" maxlength="80" value="{{ details_values.employment_status }}"></div>
+      <div class="field"><label for="occupation">Occupation</label><input id="occupation" name="occupation" maxlength="120" value="{{ details_values.occupation }}"></div>
+      <div class="field"><label for="income_stability">Income stability</label><select id="income_stability" name="income_stability">
+        <option value="">Not provided</option>{% for option in ("Stable", "Variable", "Seasonal", "Other") %}<option value="{{ option }}" {{ "selected" if details_values.income_stability == option else "" }}>{{ option }}</option>{% endfor %}
+      </select></div>
+      <div class="field full"><label for="income_sources">Income sources</label><input id="income_sources" name="income_sources" maxlength="240" value="{{ details_values.income_sources }}" placeholder="For example: salary, freelance work"></div>
+      <div class="field"><label for="monthly_expenses">Monthly expenses (MXN)</label><input id="monthly_expenses" name="monthly_expenses" type="number" min="0" step="0.01" value="{{ details_values.monthly_expenses }}"></div>
+      <div class="field"><label for="monthly_debt_payments">Monthly debt payments (MXN)</label><input id="monthly_debt_payments" name="monthly_debt_payments" type="number" min="0" step="0.01" value="{{ details_values.monthly_debt_payments }}"></div>
+      <div class="field"><label for="liquid_savings">Liquid savings / emergency fund (MXN)</label><input id="liquid_savings" name="liquid_savings" type="number" min="0" step="0.01" value="{{ details_values.liquid_savings }}"></div>
+      <div class="field"><label for="total_assets">Total assets (MXN)</label><input id="total_assets" name="total_assets" type="number" min="0" step="0.01" value="{{ details_values.total_assets }}"></div>
+      <div class="field"><label for="total_liabilities">Total liabilities (MXN)</label><input id="total_liabilities" name="total_liabilities" type="number" min="0" step="0.01" value="{{ details_values.total_liabilities }}"></div>
+      <div class="field full"><button class="button" type="submit">Save optional details</button></div>
+    </form>
+  </details>
+</section>
+<div class="notice small">This is an educational display, not a financial assessment or advice. Only the information you provide is shown; unknown values are not estimated.</div>
+"""
+
+
+OVERVIEW_TEMPLATE = """
+<section class="dashboard-head">
+  <div><div class="eyebrow">Overview</div><h1 style="font-size:2.65rem">Welcome back, {{ user_name }}.</h1><p class="muted">A quick summary of your VALORA learning account.</p></div>
+  <span class="badge">Classroom simulation</span>
+</section>
+<section class="metric-grid" aria-label="Account overview">
+  <article class="card metric"><div class="metric-label">Investor profile</div><div class="metric-value">{{ investor_profile }}</div><p class="small">Illustrative profile from your questionnaire.</p></article>
+  <article class="card metric"><div class="metric-label">Financial objective</div><div class="metric-value" style="font-size:1.15rem">{{ objective_label }}</div><p class="small">{{ horizon_years }}-year horizon</p></article>
+  <article class="card metric"><div class="metric-label">Saved companies</div><div class="metric-value">{{ favorite_count }}</div><p class="small">Private to your account.</p></article>
+</section>
+<section class="section three-grid">
+  <article class="card"><div class="eyebrow">Personal finances</div><h2>My Profile</h2><p class="small">Review your financial overview and update optional details.</p><a class="button" href="{{ url_for('profile') }}">Open my profile</a></article>
+  <article class="card"><div class="eyebrow">Simulated assets</div><h2>My Portfolio</h2><p class="small">View your example allocation, holdings, and invented performance series.</p><a class="button" href="{{ url_for('my_portfolio') }}">Open my portfolio</a></article>
+  <article class="card"><div class="eyebrow">Explore</div><h2>Investments</h2><p class="small">Browse illustrative portfolios and example company listings.</p><a class="button" href="{{ url_for('marketplace') }}">Explore investments</a></article>
+</section>
+<div class="notice small">VALORA's demo data is simulated. No live investment, transaction, or market-data service is connected.</div>
+"""
+
+
+MY_PORTFOLIO_TEMPLATE = """
+<section class="dashboard-head">
+  <div>
+    <div class="eyebrow">My portfolio | simulated</div>
+    <h1 style="font-size:2.65rem">Your portfolio example.</h1>
+    <p class="muted">A simulated allocation based on the profile generated by your questionnaire.</p>
   </div>
   <span class="badge">{{ investor_profile }} profile</span>
 </section>
@@ -592,9 +782,21 @@ DASHBOARD_TEMPLATE = """
   </div>
 </section>
 <section class="section">
+  <div class="eyebrow">Illustrative assets</div>
+  <h2>Example stocks and bond category</h2>
+  <p class="small">These classroom examples use names from Investments. They are not actual holdings, trades, or recommendations. No bond issue, stock quantity, price, or return is specified.</p>
+  <div class="card table-wrap">
+    <table><thead><tr><th>Example asset</th><th>Type</th><th>Illustrative allocation</th></tr></thead>
+      <tbody>{% for holding in holdings %}
+        <tr><td>{% if holding.ticker %}<a href="{{ url_for('company_detail', ticker=holding.ticker) }}">{{ holding.name }} ({{ holding.ticker }})</a>{% else %}{{ holding.name }}{% endif %}</td><td>{{ holding.kind }}</td><td>{{ holding.percent }}%</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="button-row"><a class="button secondary" href="{{ url_for('marketplace') }}">View Investments catalog</a></div>
+</section>
+<section class="section">
   <div class="eyebrow">Illustrative asset allocation</div>
-  <h2>Categories, not specific products.</h2>
-  <p class="small">Percentages are example allocations for this prototype - not a personalized recommendation to invest.</p>
+  <h2>Allocation by category</h2>
   <div class="allocation-grid">
     {% for item in allocation %}
       <article class="card">
@@ -892,6 +1094,22 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     @login_required
     def profile():
         existing = get_profile(g.current_user["id"])
+        if (
+            request.method == "GET"
+            and existing is not None
+            and request.args.get("edit") != "1"
+        ):
+            details = get_financial_details(g.current_user["id"])
+            dashboard_values = financial_dashboard_values(existing, details)
+            return render_page(
+                PROFILE_DASHBOARD_TEMPLATE,
+                "My financial profile",
+                user_name=g.current_user["name"].split()[0],
+                investor_profile=existing["investor_profile"],
+                details_values=profile_details_form_values(details),
+                format_mxn=format_mxn,
+                **dashboard_values,
+            )
         values = profile_form_values(existing)
         error = None
         if request.method == "POST":
@@ -937,7 +1155,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                     )
                     get_db().commit()
                     flash("Your illustrative profile and portfolio are ready.", "success")
-                    return redirect(url_for("dashboard"))
+                    return redirect(url_for("profile"))
         return render_page(
             PROFILE_TEMPLATE,
             "Financial profile",
@@ -949,9 +1167,122 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             decline_responses=DECLINE_RESPONSES,
         )
 
+    @app.post("/profile/details")
+    @login_required
+    def save_profile_details():
+        validate_csrf()
+        if get_profile(g.current_user["id"]) is None:
+            return redirect(url_for("profile"))
+
+        values = {
+            "monthly_net_income": request.form.get("monthly_net_income", "").strip(),
+            "monthly_savings": request.form.get("monthly_savings", "").strip(),
+            "age": request.form.get("age", "").strip(),
+            "employment_status": request.form.get("employment_status", "").strip(),
+            "occupation": request.form.get("occupation", "").strip(),
+            "income_stability": request.form.get("income_stability", "").strip(),
+            "income_sources": request.form.get("income_sources", "").strip(),
+            "monthly_expenses": request.form.get("monthly_expenses", "").strip(),
+            "monthly_debt_payments": request.form.get("monthly_debt_payments", "").strip(),
+            "liquid_savings": request.form.get("liquid_savings", "").strip(),
+            "total_liabilities": request.form.get("total_liabilities", "").strip(),
+            "total_assets": request.form.get("total_assets", "").strip(),
+        }
+        try:
+            age = int(values["age"]) if values["age"] else None
+            monthly_net_income_cents = parse_optional_money(values["monthly_net_income"])
+            monthly_savings_cents = parse_optional_money(values["monthly_savings"])
+            monthly_expenses_cents = parse_optional_money(values["monthly_expenses"])
+            monthly_debt_payments_cents = parse_optional_money(
+                values["monthly_debt_payments"]
+            )
+            liquid_savings_cents = parse_optional_money(values["liquid_savings"])
+            total_liabilities_cents = parse_optional_money(values["total_liabilities"])
+            total_assets_cents = parse_optional_money(values["total_assets"])
+        except (InvalidOperation, ValueError):
+            flash("Enter valid non-negative amounts and a whole-number age.", "error")
+            return redirect(url_for("profile"))
+
+        if age is not None and not 0 <= age <= 120:
+            flash("Enter an age from 0 to 120, or leave it blank.", "error")
+            return redirect(url_for("profile"))
+        if (
+            len(values["employment_status"]) > 80
+            or len(values["occupation"]) > 120
+            or len(values["income_sources"]) > 240
+            or values["income_stability"] not in {"", "Stable", "Variable", "Seasonal", "Other"}
+        ):
+            flash("Review the optional profile details and try again.", "error")
+            return redirect(url_for("profile"))
+
+        with get_db():
+            get_db().execute(
+                """
+                INSERT INTO financial_details (
+                    user_id, monthly_expenses_cents, total_debt_cents,
+                    monthly_net_income_cents, monthly_savings_cents,
+                    monthly_debt_payments_cents, liquid_savings_cents,
+                    total_liabilities_cents, total_assets_cents, age,
+                    employment_status, occupation, income_stability, income_sources
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    monthly_expenses_cents = excluded.monthly_expenses_cents,
+                    monthly_net_income_cents = excluded.monthly_net_income_cents,
+                    monthly_savings_cents = excluded.monthly_savings_cents,
+                    monthly_debt_payments_cents = excluded.monthly_debt_payments_cents,
+                    liquid_savings_cents = excluded.liquid_savings_cents,
+                    total_liabilities_cents = excluded.total_liabilities_cents,
+                    total_assets_cents = excluded.total_assets_cents,
+                    age = excluded.age,
+                    employment_status = excluded.employment_status,
+                    occupation = excluded.occupation,
+                    income_stability = excluded.income_stability,
+                    income_sources = excluded.income_sources,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (
+                    g.current_user["id"],
+                    monthly_expenses_cents,
+                    None,
+                    monthly_net_income_cents,
+                    monthly_savings_cents,
+                    monthly_debt_payments_cents,
+                    liquid_savings_cents,
+                    total_liabilities_cents,
+                    total_assets_cents,
+                    age,
+                    values["employment_status"] or None,
+                    values["occupation"] or None,
+                    values["income_stability"] or None,
+                    values["income_sources"] or None,
+                ),
+            )
+        flash("Your optional financial details were saved.", "success")
+        return redirect(url_for("profile"))
+
     @app.get("/dashboard")
     @login_required
     def dashboard():
+        profile_row = get_profile(g.current_user["id"])
+        if profile_row is None:
+            return redirect(url_for("profile"))
+        favorite_count = get_db().execute(
+            "SELECT COUNT(*) AS count FROM favorites WHERE user_id = ?",
+            (g.current_user["id"],),
+        ).fetchone()["count"]
+        return render_page(
+            OVERVIEW_TEMPLATE,
+            "Overview",
+            user_name=g.current_user["name"].split()[0],
+            investor_profile=profile_row["investor_profile"],
+            objective_label=OBJECTIVE_LABELS[profile_row["objective"]],
+            horizon_years=profile_row["horizon_years"],
+            favorite_count=favorite_count,
+        )
+
+    @app.get("/my-portfolio")
+    @login_required
+    def my_portfolio():
         profile_row = get_profile(g.current_user["id"])
         if profile_row is None:
             return redirect(url_for("profile"))
@@ -1207,10 +1538,20 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             }
             for item in products
         ]
+        holdings = [
+            {
+                "name": name,
+                "kind": kind,
+                "percent": percent,
+                "ticker": ticker,
+            }
+            for name, kind, percent, ticker in MODEL_HOLDINGS[
+                portfolio["investor_profile"]
+            ]
+        ]
         return render_page(
-            DASHBOARD_TEMPLATE,
-            "Your overview",
-            user_name=g.current_user["name"].split()[0],
+            MY_PORTFOLIO_TEMPLATE,
+            "My portfolio",
             investor_profile=portfolio["investor_profile"],
             current_value=current_value,
             performance_label=performance_label,
@@ -1219,6 +1560,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             chart_points=chart_points,
             recommendation=recommendation,
             allocation=allocation,
+            holdings=holdings,
             format_mxn=format_mxn,
         )
 
@@ -1264,6 +1606,22 @@ def initialize_database(path: str) -> None:
     connection = sqlite3.connect(database_path)
     try:
         connection.executescript(SCHEMA)
+        existing_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(financial_details)")
+        }
+        detail_columns = {
+            "monthly_net_income_cents": "INTEGER",
+            "monthly_savings_cents": "INTEGER",
+            "monthly_debt_payments_cents": "INTEGER",
+            "liquid_savings_cents": "INTEGER",
+            "total_liabilities_cents": "INTEGER",
+        }
+        for column, column_type in detail_columns.items():
+            if column not in existing_columns:
+                connection.execute(
+                    f"ALTER TABLE financial_details ADD COLUMN {column} {column_type}"
+                )
         connection.commit()
     finally:
         connection.close()
@@ -1272,6 +1630,11 @@ def initialize_database(path: str) -> None:
 def get_profile(user_id: int) -> sqlite3.Row | None:
     return get_db().execute(
         "SELECT * FROM financial_profiles WHERE user_id = ?", (user_id,)
+    ).fetchone()
+
+def get_financial_details(user_id: int) -> sqlite3.Row | None:
+    return get_db().execute(
+        "SELECT * FROM financial_details WHERE user_id = ?", (user_id,)
     ).fetchone()
 
 
@@ -1294,6 +1657,226 @@ def profile_form_values(profile: sqlite3.Row | None) -> dict[str, str]:
         "experience": profile["experience"],
     }
 
+def profile_details_form_values(details: sqlite3.Row | None) -> dict[str, str]:
+    if details is None:
+        return {
+            "monthly_net_income": "",
+            "monthly_savings": "",
+            "age": "",
+            "employment_status": "",
+            "occupation": "",
+            "income_stability": "",
+            "income_sources": "",
+            "monthly_expenses": "",
+            "monthly_debt_payments": "",
+            "liquid_savings": "",
+            "total_liabilities": "",
+            "total_assets": "",
+        }
+    return {
+        "monthly_net_income": (
+            format_input_mxn(details["monthly_net_income_cents"])
+            if details["monthly_net_income_cents"] is not None
+            else ""
+        ),
+        "monthly_savings": (
+            format_input_mxn(details["monthly_savings_cents"])
+            if details["monthly_savings_cents"] is not None
+            else ""
+        ),
+        "age": str(details["age"]) if details["age"] is not None else "",
+        "employment_status": details["employment_status"] or "",
+        "occupation": details["occupation"] or "",
+        "income_stability": details["income_stability"] or "",
+        "income_sources": details["income_sources"] or "",
+        "monthly_expenses": (
+            format_input_mxn(details["monthly_expenses_cents"])
+            if details["monthly_expenses_cents"] is not None
+            else ""
+        ),
+        "monthly_debt_payments": (
+            format_input_mxn(details["monthly_debt_payments_cents"])
+            if details["monthly_debt_payments_cents"] is not None
+            else ""
+        ),
+        "liquid_savings": (
+            format_input_mxn(details["liquid_savings_cents"])
+            if details["liquid_savings_cents"] is not None
+            else ""
+        ),
+        "total_liabilities": (
+            format_input_mxn(details["total_liabilities_cents"])
+            if details["total_liabilities_cents"] is not None
+            else ""
+        ),
+        "total_assets": (
+            format_input_mxn(details["total_assets_cents"])
+            if details["total_assets_cents"] is not None
+            else ""
+        ),
+    }
+
+
+def financial_dashboard_values(
+    profile: sqlite3.Row, details: sqlite3.Row | None
+) -> dict[str, Any]:
+    monthly_income_cents = profile["monthly_income_cents"]
+    monthly_net_income_cents = (
+        details["monthly_net_income_cents"] if details is not None else None
+    )
+    monthly_savings_cents = (
+        details["monthly_savings_cents"] if details is not None else None
+    )
+    monthly_expenses_cents = (
+        details["monthly_expenses_cents"] if details is not None else None
+    )
+    monthly_debt_payments_cents = (
+        details["monthly_debt_payments_cents"] if details is not None else None
+    )
+    liquid_savings_cents = (
+        details["liquid_savings_cents"] if details is not None else None
+    )
+    total_liabilities_cents = (
+        details["total_liabilities_cents"] if details is not None else None
+    )
+    total_assets_cents = details["total_assets_cents"] if details is not None else None
+    net_worth_cents = (
+        total_assets_cents - total_liabilities_cents
+        if total_assets_cents is not None and total_liabilities_cents is not None
+        else None
+    )
+    disposable_income_cents = (
+        monthly_net_income_cents - monthly_expenses_cents - monthly_debt_payments_cents
+        if monthly_net_income_cents is not None
+        and monthly_expenses_cents is not None
+        and monthly_debt_payments_cents is not None
+        else None
+    )
+    chart_income_cents = monthly_net_income_cents or monthly_income_cents
+    chart_income_label = (
+        "Net income" if monthly_net_income_cents is not None
+        else "Questionnaire income"
+    )
+    bar_maximum = max(chart_income_cents, monthly_expenses_cents or 0)
+    income_bar_width = (
+        round(chart_income_cents / bar_maximum * 100) if bar_maximum else 0
+    )
+    expense_bar_width = (
+        round(monthly_expenses_cents / bar_maximum * 100)
+        if monthly_expenses_cents is not None and bar_maximum
+        else 0
+    )
+    if monthly_net_income_cents is not None and monthly_net_income_cents > 0:
+        expense_ratio = (
+            Decimal(monthly_expenses_cents) / Decimal(monthly_net_income_cents) * 100
+            if monthly_expenses_cents is not None
+            else None
+        )
+        debt_ratio = (
+            Decimal(monthly_debt_payments_cents)
+            / Decimal(monthly_net_income_cents)
+            * 100
+            if monthly_debt_payments_cents is not None
+            else None
+        )
+        savings_rate = (
+            Decimal(monthly_savings_cents) / Decimal(monthly_net_income_cents) * 100
+            if monthly_savings_cents is not None
+            else None
+        )
+    else:
+        expense_ratio = None
+        debt_ratio = None
+        savings_rate = None
+
+    ratio_unavailable_label = (
+        "Not calculable (zero net income)"
+        if monthly_net_income_cents == 0
+        else "Not provided"
+    )
+    expense_ratio_label = (
+        f"{expense_ratio:.1f}%" if expense_ratio is not None else ratio_unavailable_label
+    )
+    debt_to_income_label = (
+        f"{debt_ratio:.1f}%" if debt_ratio is not None else ratio_unavailable_label
+    )
+    savings_rate_label = (
+        f"{savings_rate:.1f}%" if savings_rate is not None else ratio_unavailable_label
+    )
+    savings_bar_width = (
+        float(min(max(savings_rate, Decimal(0)), Decimal(100)))
+        if savings_rate is not None
+        else 0
+    )
+    emergency_fund_months = (
+        Decimal(liquid_savings_cents) / Decimal(monthly_expenses_cents)
+        if liquid_savings_cents is not None
+        and monthly_expenses_cents is not None
+        and monthly_expenses_cents > 0
+        else None
+    )
+    emergency_fund_label = (
+        f"{emergency_fund_months:.1f} months"
+        if emergency_fund_months is not None
+        else (
+            "Not calculable (zero expenses)"
+            if monthly_expenses_cents == 0 and liquid_savings_cents is not None
+            else "Not provided"
+        )
+    )
+    distribution_available = (
+        monthly_net_income_cents is not None
+        and monthly_net_income_cents > 0
+        and monthly_expenses_cents is not None
+        and monthly_debt_payments_cents is not None
+        and monthly_savings_cents is not None
+        and monthly_expenses_cents + monthly_debt_payments_cents + monthly_savings_cents
+        <= monthly_net_income_cents
+    )
+    if distribution_available:
+        expense_share = float(
+            Decimal(monthly_expenses_cents) / Decimal(monthly_net_income_cents) * 100
+        )
+        debt_share = float(
+            Decimal(monthly_debt_payments_cents) / Decimal(monthly_net_income_cents) * 100
+        )
+        savings_share = float(
+            Decimal(monthly_savings_cents) / Decimal(monthly_net_income_cents) * 100
+        )
+        expense_plus_debt_share = expense_share + debt_share
+        committed_share = expense_plus_debt_share + savings_share
+        remaining_share_label = f"{100 - committed_share:.1f}%"
+    else:
+        expense_share = debt_share = savings_share = 0
+        expense_plus_debt_share = committed_share = 0
+        remaining_share_label = "Not available"
+    return {
+        "monthly_income_cents": monthly_income_cents,
+        "monthly_net_income_cents": monthly_net_income_cents,
+        "monthly_expenses_cents": monthly_expenses_cents,
+        "monthly_savings_cents": monthly_savings_cents,
+        "monthly_debt_payments_cents": monthly_debt_payments_cents,
+        "liquid_savings_cents": liquid_savings_cents,
+        "net_worth_cents": net_worth_cents,
+        "disposable_income_cents": disposable_income_cents,
+        "emergency_fund_label": emergency_fund_label,
+        "savings_rate": savings_rate,
+        "income_bar_width": income_bar_width,
+        "expense_bar_width": expense_bar_width,
+        "expense_share": expense_share,
+        "debt_share": debt_share,
+        "expense_plus_debt_share": expense_plus_debt_share,
+        "committed_share": committed_share,
+        "distribution_available": distribution_available,
+        "remaining_share_label": remaining_share_label,
+        "chart_income_cents": chart_income_cents,
+        "chart_income_label": chart_income_label,
+        "expense_ratio_label": expense_ratio_label,
+        "debt_to_income_label": debt_to_income_label,
+        "savings_rate_label": savings_rate_label,
+        "savings_bar_width": savings_bar_width,
+    }
+
 
 def classify_profile(horizon_years: int, decline_response: str) -> str:
     if horizon_years < 3 or decline_response == "sell":
@@ -1308,6 +1891,9 @@ def parse_money_to_cents(raw: str) -> int:
     if not value.is_finite() or value < 0:
         raise InvalidOperation
     return int((value * 100).quantize(Decimal("1")))
+
+def parse_optional_money(raw: str) -> int | None:
+    return parse_money_to_cents(raw) if raw else None
 
 
 def format_mxn(amount_cents: int) -> str:

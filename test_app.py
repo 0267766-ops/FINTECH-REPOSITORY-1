@@ -1,9 +1,10 @@
 import re
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
-from app import create_app
+from app import create_app, initialize_database
 
 
 class ValoraAppTests(unittest.TestCase):
@@ -99,10 +100,17 @@ class ValoraAppTests(unittest.TestCase):
 
         response = self.complete_profile(self.client)
         self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Your financial picture", response.data)
+        self.assertIn(b"Monthly net income", response.data)
+        self.assertIn(b"$45,000.00 MXN", response.data)
+
+        response = self.client.get("/my-portfolio")
+        self.assertEqual(response.status_code, 200)
         self.assertIn(b"Growth profile", response.data)
         self.assertIn(b"Simulated", response.data)
         self.assertIn(b"not a forecast", response.data)
         self.assertIn(b"60%", response.data)
+        self.assertIn(b"Example stocks and bond category", response.data)
 
         with self.app.app_context():
             from app import get_db
@@ -133,6 +141,177 @@ class ValoraAppTests(unittest.TestCase):
         self.assertTrue(all(row["is_simulated"] for row in activity))
         self.assertEqual(len(performance), 7)
         self.assertTrue(all(row["is_simulated"] for row in performance))
+
+    def test_profile_dashboard_optional_details_and_derived_values(self):
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        initial = self.complete_profile(self.client)
+        self.assertIn(b"Not provided", initial.data)
+        self.assertIn(b"Financial situation", initial.data)
+        self.assertNotIn(b'name="horizon_years"', initial.data)
+
+        self.client.post(
+            "/profile/details",
+            data={
+                "csrf_token": self.csrf_token(initial),
+                "age": "25",
+                "employment_status": "Full-time",
+                "occupation": "Analyst",
+                "income_stability": "Stable",
+                "income_sources": "Salary",
+                "monthly_net_income": "45000",
+                "monthly_savings": "30000",
+                "monthly_expenses": "15000",
+                "monthly_debt_payments": "2000",
+                "liquid_savings": "45000",
+                "total_liabilities": "20000",
+                "total_assets": "100000",
+            },
+            follow_redirects=True,
+        )
+        response = self.client.get("/profile")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"$30,000.00 MXN", response.data)
+        self.assertIn(b"$80,000.00 MXN", response.data)
+        self.assertIn(b"25", response.data)
+        self.assertIn(b"Full-time", response.data)
+        self.assertIn(b"Analyst", response.data)
+        self.assertIn(b"Salary", response.data)
+        self.assertIn(b"66.7%", response.data)
+        self.assertIn(b"33.3%", response.data)
+        self.assertIn(b"4.4%", response.data)
+        self.assertIn(b"3.0 months", response.data)
+        self.assertIn(b"$28,000.00 MXN", response.data)
+        self.assertIn(b"Income vs. expenses", response.data)
+        self.assertIn(b"Financial distribution", response.data)
+
+    def test_overview_profile_and_portfolio_are_distinct_and_user_scoped(self):
+        self.create_account(self.client, "First User", "first@example.test")
+        self.complete_profile(self.client, horizon="1", decline_response="add")
+
+        overview = self.client.get("/dashboard")
+        profile = self.client.get("/profile")
+        portfolio = self.client.get("/my-portfolio")
+        self.assertIn(b"Welcome back", overview.data)
+        self.assertNotIn(b"name=\"monthly_income\"", overview.data)
+        self.assertIn(b"Your financial picture", profile.data)
+        self.assertNotIn(b'name="horizon_years"', profile.data)
+        self.assertIn(b"Example stocks and bond category", portfolio.data)
+        self.assertIn(b"Illustrative government bond category", portfolio.data)
+        self.assertIn(b"The Coca-Cola Company", portfolio.data)
+        self.assertIn(b"not actual holdings", portfolio.data)
+
+        second_client = self.app.test_client()
+        self.create_account(second_client, "Second User", "second@example.test")
+        self.complete_profile(second_client, horizon="10", decline_response="add")
+        second_profile = second_client.get("/profile")
+        self.assertIn(b"Not provided", second_profile.data)
+        self.assertNotIn(b"Analyst", second_profile.data)
+        self.assertIn(b"NVIDIA Corporation", second_client.get("/my-portfolio").data)
+
+    def test_profile_dashboard_shows_deficit_without_fabricating_net_worth(self):
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        initial = self.complete_profile(self.client)
+        self.client.post(
+            "/profile/details",
+            data={
+                "csrf_token": self.csrf_token(initial),
+                "monthly_net_income": "45000",
+                "monthly_savings": "0",
+                "monthly_expenses": "60000",
+                "monthly_debt_payments": "0",
+                "total_assets": "100000",
+            },
+        )
+
+        response = self.client.get("/profile")
+        self.assertIn(b"$-15,000.00 MXN", response.data)
+        self.assertIn(b"Shortfall", response.data)
+        self.assertIn(b"Enter net income, expenses, debt payments, and savings", response.data)
+        self.assertIn(b"Net worth</div><div class=\"metric-value\">Not provided", response.data)
+
+    def test_financial_indicator_formulas_and_missing_value_handling(self):
+        self.create_account(self.client, "Demo User", "demo@example.test")
+        initial = self.complete_profile(self.client)
+        response = self.client.post(
+            "/profile/details",
+            data={
+                "csrf_token": self.csrf_token(initial),
+                "monthly_net_income": "50000",
+                "monthly_savings": "10000",
+                "monthly_expenses": "25000",
+                "monthly_debt_payments": "5000",
+                "liquid_savings": "75000",
+                "total_assets": "200000",
+                "total_liabilities": "60000",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"20.0%", response.data)  # Savings rate
+        self.assertIn(b"10.0%", response.data)  # Debt-to-income
+        self.assertIn(b"50.0%", response.data)  # Expense ratio
+        self.assertIn(b"$140,000.00 MXN", response.data)  # Net worth
+        self.assertIn(b"3.0 months", response.data)  # Emergency fund
+        self.assertIn(b"$20,000.00 MXN", response.data)  # Disposable income
+        self.assertIn(b"Unallocated: 20.0%", response.data)
+
+        update_page = self.client.get("/profile")
+        response = self.client.post(
+            "/profile/details",
+            data={
+                "csrf_token": self.csrf_token(update_page),
+                "monthly_net_income": "50000",
+                "monthly_expenses": "25000",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn(b"Savings Rate</div><div class=\"metric-value\">Not provided", response.data)
+        self.assertIn(b"Debt-to-Income</div><div class=\"metric-value\">Not provided", response.data)
+        self.assertIn(b"Net Worth</div><div class=\"metric-value\">Not provided", response.data)
+        self.assertIn(b"Emergency Fund</div><div class=\"metric-value\">Not provided", response.data)
+        self.assertIn(b"Disposable Income</div><div class=\"metric-value\">Not provided", response.data)
+
+    def test_existing_database_is_migrated_for_new_financial_inputs(self):
+        database_path = Path(self.temporary_directory.name) / "legacy.sqlite"
+        connection = sqlite3.connect(database_path)
+        connection.executescript(
+            """
+            CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+            CREATE TABLE financial_details (
+                user_id INTEGER PRIMARY KEY,
+                monthly_expenses_cents INTEGER,
+                total_debt_cents INTEGER,
+                total_assets_cents INTEGER,
+                age INTEGER,
+                employment_status TEXT,
+                occupation TEXT,
+                income_stability TEXT,
+                income_sources TEXT,
+                updated_at TEXT
+            );
+            INSERT INTO users (id, name) VALUES (1, 'Demo');
+            INSERT INTO financial_details (user_id, total_debt_cents)
+                VALUES (1, 2000000);
+            """
+        )
+        connection.close()
+
+        initialize_database(str(database_path))
+
+        connection = sqlite3.connect(database_path)
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(financial_details)")
+        }
+        legacy_debt = connection.execute(
+            "SELECT total_debt_cents FROM financial_details WHERE user_id = 1"
+        ).fetchone()[0]
+        connection.close()
+        self.assertIn("monthly_net_income_cents", columns)
+        self.assertIn("monthly_debt_payments_cents", columns)
+        self.assertIn("liquid_savings_cents", columns)
+        self.assertIn("total_liabilities_cents", columns)
+        self.assertEqual(legacy_debt, 2000000)
 
     def test_profile_rule_boundaries(self):
         cases = (
@@ -289,7 +468,7 @@ class ValoraAppTests(unittest.TestCase):
             },
             follow_redirects=True,
         )
-        self.assertIn(b"Your VALORA overview", response.data)
+        self.assertIn(b"Welcome back", response.data)
 
 
 if __name__ == "__main__":
