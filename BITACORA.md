@@ -4,7 +4,7 @@ One entry per work session. Record what the AI did, what the project partners
 decided, and any reviewer flags. Keep credentials and real personal or financial
 information out of this file.
 
-## 2026-11-16 - VALORA MVP implementation
+## 2026-11-14 - VALORA MVP implementation
 
 - **Goal:** Build the classroom prototype's core flow in line with the VALORA scope.
 - **AI did:** Implemented account creation and sign-in, a financial profile form,
@@ -15,7 +15,7 @@ information out of this file.
 - **Reviewer flags:** Four automated tests passed for the core flow, profile-rule
   boundaries, cross-user portfolio access, and login/logout with CSRF protection.
 
-## 2026-11-17 - Render deployment setup
+## 2026-11-15 - Render deployment setup
 
 - **Goal:** Make the classroom demo accessible through a shareable URL.
 - **AI did:** Added Gunicorn, configured the Flask factory for Render's port and
@@ -27,7 +27,7 @@ information out of this file.
   <https://fintech-repository-1-1.onrender.com>. Its local SQLite storage is
   ephemeral; use fictional demo data only.
 
-## 2026-11-17 - Text encoding and color contrast
+## 2026-11-16 - Text encoding and color contrast
 
 - **Goal:** Correct garbled punctuation visible in the interface and reverse the
   page's light/dark contrast as requested.
