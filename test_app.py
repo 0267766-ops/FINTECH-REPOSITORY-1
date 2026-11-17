@@ -22,6 +22,15 @@ class ValoraAppTests(unittest.TestCase):
     def tearDown(self):
         self.temporary_directory.cleanup()
 
+    def test_homepage_text_encoding_and_reversed_color_contrast(self):
+        response = self.client.get("/")
+        self.assertIn("charset=utf-8", response.content_type)
+        self.assertIn(b"Clarity that compounds.", response.data)
+        self.assertNotIn(b"\xc3\x82", response.data)
+        self.assertNotIn(b"\xc3\xa2\xe2\x82\xac", response.data)
+        self.assertIn(b"--forest: #173b32", response.data)
+        self.assertIn(b"background: var(--ivory); color: var(--charcoal)", response.data)
+
     @staticmethod
     def csrf_token(response):
         match = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import os
 import secrets
 import sqlite3
 from decimal import Decimal, InvalidOperation
@@ -134,7 +135,7 @@ BASE_TEMPLATE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#173b32">
-  <title>{{ page_title }} Â· VALORA</title>
+  <title>{{ page_title }} | VALORA</title>
   <style>
     :root {
       color-scheme: light;
@@ -149,45 +150,48 @@ BASE_TEMPLATE = """<!doctype html>
       --danger: #8d392f;
       --radius: 16px;
       font-family: Inter, "Segoe UI", Arial, sans-serif;
-      color: var(--charcoal);
-      background: var(--ivory);
+      color: var(--ivory);
+      background: var(--forest);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; min-width: 320px; }
+    body { margin: 0; min-width: 320px; background: var(--forest); color: var(--ivory); }
     a { color: inherit; }
     button, input, select { font: inherit; }
     .shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
-    .topbar { background: var(--ivory); border-bottom: 1px solid var(--line); }
+    .topbar { background: var(--forest); border-bottom: 1px solid #456157; }
     .nav { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-    .wordmark { color: var(--forest); font-weight: 750; letter-spacing: .19em; text-decoration: none; }
+    .wordmark { color: var(--ivory); font-weight: 750; letter-spacing: .19em; text-decoration: none; }
     .nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; }
-    .nav-links a, .nav-links button { color: var(--charcoal); background: none; border: 0; padding: 8px 0; text-decoration: none; font-size: .9rem; cursor: pointer; }
-    .nav-links a:hover, .nav-links button:hover { color: var(--forest); text-decoration: underline; text-underline-offset: 5px; }
-    .nav-links .nav-cta { padding: 11px 16px; border-radius: 999px; background: var(--forest); color: var(--white); text-decoration: none; }
+    .nav-links a, .nav-links button { color: var(--ivory); background: none; border: 0; padding: 8px 0; text-decoration: none; font-size: .9rem; cursor: pointer; }
+    .nav-links a:hover, .nav-links button:hover { color: var(--champagne); text-decoration: underline; text-underline-offset: 5px; }
+    .nav-links .nav-cta { padding: 11px 16px; border-radius: 999px; background: var(--ivory); color: var(--forest); text-decoration: none; }
     main { min-height: calc(100vh - 150px); padding: 42px 0 64px; }
     .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr); gap: 50px; align-items: center; padding: 68px 0 78px; }
-    .eyebrow { color: var(--forest); text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 700; }
+    .eyebrow { color: #d6c69d; text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 700; }
     h1, .editorial { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; }
-    h1 { font-size: clamp(2.65rem, 5vw, 4.65rem); line-height: 1.04; letter-spacing: -.035em; margin: 14px 0 20px; color: var(--forest); }
-    h2 { font-size: clamp(1.35rem, 2.8vw, 2rem); color: var(--forest); margin: 0 0 14px; }
+    h1 { font-size: clamp(2.65rem, 5vw, 4.65rem); line-height: 1.04; letter-spacing: -.035em; margin: 14px 0 20px; color: var(--ivory); }
+    h2 { font-size: clamp(1.35rem, 2.8vw, 2rem); color: var(--ivory); margin: 0 0 14px; }
     h3 { color: var(--forest); margin: 0 0 10px; }
     p { line-height: 1.7; }
-    .lead { max-width: 600px; color: #48554e; font-size: 1.05rem; }
-    .hero-panel { border: 1px solid var(--line); border-radius: 22px; background: var(--white); padding: 26px; box-shadow: 0 18px 55px #173b3210; }
+    .lead { max-width: 600px; color: #d6dfd8; font-size: 1.05rem; }
+    .hero-panel, .card, .form-card { background: var(--ivory); color: var(--charcoal); }
+    .hero-panel { border: 1px solid var(--line); border-radius: 22px; padding: 26px; box-shadow: 0 18px 55px #00000020; }
+    .hero-panel h2, .card h2, .form-card h2 { color: var(--forest); }
     .hero-mark { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--champagne); border-radius: 50%; color: var(--forest); font-family: Georgia, serif; font-size: 1.6rem; }
     .hero-panel blockquote { margin: 22px 0 8px; color: var(--forest); font: 1.55rem/1.35 Georgia, serif; }
-    .muted, .small { color: var(--muted); }
+    .muted, .small { color: #c6d1c9; }
+    .hero-panel .muted, .hero-panel .small, .card .muted, .card .small, .form-card .muted, .form-card .small { color: var(--muted); }
     .small { font-size: .84rem; line-height: 1.6; }
     .section { padding: 34px 0; }
     .three-grid, .metric-grid, .allocation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-    .card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+    .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
     .step-number { color: #746342; font-size: .78rem; font-weight: 700; letter-spacing: .12em; }
-    .button { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; padding: 13px 20px; background: var(--forest); color: var(--white); font-weight: 650; text-decoration: none; cursor: pointer; }
-    .button:hover { background: #245447; }
-    .button.secondary { background: transparent; color: var(--forest); border: 1px solid var(--forest); }
+    .button { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; padding: 13px 20px; background: var(--ivory); color: var(--forest); font-weight: 650; text-decoration: none; cursor: pointer; }
+    .button:hover { background: #ded8c9; }
+    .button.secondary { background: transparent; color: var(--ivory); border: 1px solid var(--ivory); }
     .button-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
     .form-wrap { width: min(650px, 100%); margin: 14px auto; }
-    .form-card { background: var(--white); border: 1px solid var(--line); border-radius: 20px; padding: clamp(22px, 5vw, 38px); }
+    .form-card { border: 1px solid var(--line); border-radius: 20px; padding: clamp(22px, 5vw, 38px); }
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .field { display: grid; gap: 7px; margin-bottom: 17px; }
     .field.full { grid-column: 1 / -1; }
@@ -216,7 +220,7 @@ BASE_TEMPLATE = """<!doctype html>
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 13px 12px; border-bottom: 1px solid var(--line); text-align: left; }
     th { color: var(--muted); font-size: .8rem; font-weight: 650; }
-    footer { border-top: 1px solid var(--line); padding: 24px 0; color: var(--muted); font-size: .82rem; }
+    footer { border-top: 1px solid #456157; padding: 24px 0; color: #c6d1c9; font-size: .82rem; }
     .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; }
     @media (max-width: 760px) {
       .hero { grid-template-columns: 1fr; gap: 26px; padding: 38px 0; }
@@ -265,7 +269,7 @@ BASE_TEMPLATE = """<!doctype html>
   <footer>
     <div class="shell footer-row">
       <span class="wordmark">VALORA</span>
-      <span>Illustrative student prototype Â· Invented data only Â· No real investing or money movement</span>
+      <span>Illustrative student prototype | Invented data only | No real investing or money movement</span>
     </div>
   </footer>
 </body>
@@ -275,18 +279,18 @@ BASE_TEMPLATE = """<!doctype html>
 HOME_TEMPLATE = """
 <section class="hero">
   <div>
-    <div class="eyebrow">Digital wealth management Â· Mexico</div>
+    <div class="eyebrow">Digital wealth management | Mexico</div>
     <h1>Your future,<br>thoughtfully invested.</h1>
     <p class="lead">A clearer way to understand your money and explore an investment approach connected to your goals, time horizon and comfort with risk.</p>
     <div class="button-row">
       <a class="button" href="{{ url_for('signup') }}">Start with your goals</a>
       <a class="button secondary" href="#how-it-works">How VALORA works</a>
     </div>
-    <p class="small">A class prototype using invented, illustrative dataâ€”not a real investment service.</p>
+    <p class="small">A class prototype using invented, illustrative data - not a real investment service.</p>
   </div>
   <aside class="hero-panel">
     <div class="hero-mark" aria-hidden="true">V</div>
-    <blockquote>â€œClarity that compounds.â€</blockquote>
+    <blockquote>"Clarity that compounds."</blockquote>
     <p class="small">Understand your profile first. Then explore why an illustrative portfolio matches the answers you shared.</p>
   </aside>
 </section>
@@ -294,9 +298,9 @@ HOME_TEMPLATE = """
   <div class="eyebrow">A considered first step</div>
   <h2>Understand before you invest.</h2>
   <div class="three-grid">
-    <article class="card"><span class="step-number">01 Â· YOUR PROFILE</span><h3>Start with what matters</h3><p class="small">Share an objective, an investment horizon and how you might react to a temporary decline.</p></article>
-    <article class="card"><span class="step-number">02 Â· YOUR APPROACH</span><h3>See the reasoning</h3><p class="small">Explore a transparent, rules-based investor profile and category-level illustrative allocation.</p></article>
-    <article class="card"><span class="step-number">03 Â· YOUR DASHBOARD</span><h3>Follow a simulation</h3><p class="small">See an invented performance example and sample activityâ€”never a live balance or a promised return.</p></article>
+    <article class="card"><span class="step-number">01 | YOUR PROFILE</span><h3>Start with what matters</h3><p class="small">Share an objective, an investment horizon and how you might react to a temporary decline.</p></article>
+    <article class="card"><span class="step-number">02 | YOUR APPROACH</span><h3>See the reasoning</h3><p class="small">Explore a transparent, rules-based investor profile and category-level illustrative allocation.</p></article>
+    <article class="card"><span class="step-number">03 | YOUR DASHBOARD</span><h3>Follow a simulation</h3><p class="small">See an invented performance example and sample activity - never a live balance or a promised return.</p></article>
   </div>
 </section>
 <div class="notice small">This academic prototype does not open brokerage accounts, execute trades, conduct real KYC, hold assets, or transfer money. Do not enter real personal or financial information.</div>
@@ -344,7 +348,7 @@ LOGIN_TEMPLATE = """
 PROFILE_TEMPLATE = """
 <section class="form-wrap">
   <div class="form-card">
-    <div class="eyebrow">Step 1 of 2 Â· Your financial profile</div>
+    <div class="eyebrow">Step 1 of 2 | Your financial profile</div>
     <h1 style="font-size:2.55rem">What are you working toward?</h1>
     <p class="muted">Your answers shape an illustrative profile and category-level allocation. All amounts stay in this local demo.</p>
     {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
@@ -383,8 +387,8 @@ DASHBOARD_TEMPLATE = """
   <span class="badge">{{ investor_profile }} profile</span>
 </section>
 <section class="metric-grid" aria-label="Simulated portfolio summary">
-  <article class="card metric"><div class="metric-label">Example portfolio value</div><div class="metric-value">{{ format_mxn(current_value) }}</div><p class="small">Simulated Â· not an account balance</p></article>
-  <article class="card metric"><div class="metric-label">Example period change</div><div class="metric-value">{{ performance_label }}</div><p class="small">Invented sample series Â· not a forecast</p></article>
+  <article class="card metric"><div class="metric-label">Example portfolio value</div><div class="metric-value">{{ format_mxn(current_value) }}</div><p class="small">Simulated | not an account balance</p></article>
+  <article class="card metric"><div class="metric-label">Example period change</div><div class="metric-value">{{ performance_label }}</div><p class="small">Invented sample series | not a forecast</p></article>
   <article class="card metric"><div class="metric-label">Your objective</div><div class="metric-value" style="font-size:1.25rem">{{ objective_label }}</div><p class="small">{{ horizon_years }}-year horizon</p></article>
 </section>
 <section class="section">
@@ -397,7 +401,7 @@ DASHBOARD_TEMPLATE = """
           <div class="chart-column"><span class="chart-bar" style="height:{{ point.height }}%" title="{{ format_mxn(point.value) }}"></span><span class="chart-label">{{ point.label }}</span></div>
         {% endfor %}
       </div>
-      <p class="small">Start Â· then six fictional monthly points</p>
+      <p class="small">Start | then six fictional monthly points</p>
     </article>
     <article class="card">
       <div class="eyebrow">Why this profile</div><h2>{{ recommendation.title }}</h2>
@@ -410,7 +414,7 @@ DASHBOARD_TEMPLATE = """
 <section class="section">
   <div class="eyebrow">Illustrative asset allocation</div>
   <h2>Categories, not specific products.</h2>
-  <p class="small">Percentages are example allocations for this prototypeâ€”not a personalized recommendation to invest.</p>
+  <p class="small">Percentages are example allocations for this prototype - not a personalized recommendation to invest.</p>
   <div class="allocation-grid">
     {% for item in allocation %}
       <article class="card">
@@ -465,7 +469,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_mapping(
         DATABASE=str(DEFAULT_DATABASE),
-        SECRET_KEY=secrets.token_urlsafe(32),
+        SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_urlsafe(32),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         MAX_CONTENT_LENGTH=64 * 1024,
@@ -901,7 +905,7 @@ def save_financial_profile(
             """,
             (
                 portfolio_id,
-                "Illustrative starting amount Â· no deposit or transfer",
+                "Illustrative starting amount | no deposit or transfer",
                 starting_balance_cents,
             ),
         )
@@ -941,4 +945,8 @@ def render_page(template: str, page_title: str, **context: Any):
 
 if __name__ == "__main__":
     application = create_app()
-    application.run(host="127.0.0.1", port=5000, debug=False)
+    application.run(
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "5000")),
+        debug=False,
+    )
