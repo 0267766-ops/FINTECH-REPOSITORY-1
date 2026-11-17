@@ -60,7 +60,7 @@ configured for persistent or real financial data.
 
 ## Check
 
-Run the end-to-end, profile-rule, cross-user access and CSRF tests:
+Run the end-to-end, profile-rule, activity-history, cross-user access and CSRF tests:
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest -v test_app.py

@@ -656,7 +656,12 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             """,
             (g.current_user["id"],),
         ).fetchall()
-        return render_page(ACTIVITY_TEMPLATE, "Illustrative activity", activity_items=items)
+        return render_page(
+            ACTIVITY_TEMPLATE,
+            "Illustrative activity",
+            activity_items=items,
+            format_mxn=format_mxn,
+        )
 
     def render_portfolio(portfolio_id: int):
         portfolio = get_db().execute(

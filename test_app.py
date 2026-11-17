@@ -146,6 +146,25 @@ class ValoraAppTests(unittest.TestCase):
         response = second_client.get(f"/portfolio/{first_portfolio_id}")
         self.assertEqual(response.status_code, 404)
 
+    def test_activity_page_renders_and_shows_only_current_users_entries(self):
+        first_client = self.client
+        self.create_account(first_client, "First User", "first@example.test")
+        self.complete_profile(first_client, starting_balance="50000")
+
+        first_activity = first_client.get("/activity")
+        self.assertEqual(first_activity.status_code, 200)
+        self.assertIn(b"Illustrative starting amount", first_activity.data)
+        self.assertIn(b"$50,000.00 MXN", first_activity.data)
+        self.assertIn(b"Simulated", first_activity.data)
+
+        second_client = self.app.test_client()
+        self.create_account(second_client, "Second User", "second@example.test")
+        self.complete_profile(second_client, starting_balance="12345")
+        second_activity = second_client.get("/activity")
+        self.assertEqual(second_activity.status_code, 200)
+        self.assertIn(b"$12,345.00 MXN", second_activity.data)
+        self.assertNotIn(b"$50,000.00 MXN", second_activity.data)
+
     def test_login_logout_and_csrf_protection(self):
         self.create_account(self.client, "Demo User", "demo@example.test")
         self.complete_profile(self.client)
